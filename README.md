@@ -1,4 +1,4 @@
-![Screenshot](spinderman.png)
+![Screenshot](spinerman.png)
 
 # AI Spine Animator
 
