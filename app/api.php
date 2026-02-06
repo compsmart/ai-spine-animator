@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $model = $data['model'] ?? 'gemini-3-pro-preview';
+        $model = $data['model'] ?? 'gemini-3-flash-preview';
         $command = "python3 /var/www/evo/projects/saas-suite/bin/spine_analyze.py --image " . escapeshellarg($imagePath) . " --model " . escapeshellarg($model) . " 2>/dev/null";
         $output = shell_exec($command);
 
@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $anchorsJson = json_encode($anchors);
-        $model = $data['model'] ?? 'gemini-3-pro-preview';
+        $model = $data['model'] ?? 'gemini-3-flash-preview';
         $command = "python3 /var/www/evo/projects/saas-suite/bin/spine_refine.py --image " . escapeshellarg($imagePath) . " --anchors " . escapeshellarg($anchorsJson) . " --model " . escapeshellarg($model) . " 2>/dev/null";
         $output = shell_exec($command);
 
@@ -154,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $anchorsJson = json_encode($anchors);
         $bonesJson = json_encode($bones);
-        $model = $data['model'] ?? 'gemini-3-pro-preview';
+        $model = $data['model'] ?? 'gemini-3-flash-preview';
         $command = "python3 /var/www/evo/projects/saas-suite/bin/spine_update_anims.py --image " . escapeshellarg($imagePath) . " --anchors " . escapeshellarg($anchorsJson) . " --bones " . escapeshellarg($bonesJson) . " --model " . escapeshellarg($model) . " 2>/dev/null";
         $output = shell_exec($command);
 
