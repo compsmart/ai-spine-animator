@@ -117,23 +117,6 @@
         .toolbar-btn:hover { border-color: var(--accent); color: var(--text-primary); }
         .toolbar-btn.active { border-color: var(--accent); background: rgba(99,102,241,0.15); color: var(--text-primary); }
         .toolbar-btn.playing { border-color: var(--green); background: rgba(34,197,94,0.15); color: var(--green); }
-        .intensity-control { display: flex; align-items: center; gap: 0.4rem; }
-        .intensity-control label { font-size: 0.7rem; color: var(--text-secondary); white-space: nowrap; }
-        .intensity-slider {
-            flex: 1; height: 3px;
-            -webkit-appearance: none; appearance: none;
-            background: #334155; border-radius: 2px; outline: none;
-        }
-        .intensity-slider::-webkit-slider-thumb {
-            -webkit-appearance: none; appearance: none;
-            width: 12px; height: 12px; border-radius: 50%;
-            background: var(--accent); cursor: pointer;
-        }
-        .intensity-slider::-moz-range-thumb {
-            width: 12px; height: 12px; border-radius: 50%;
-            background: var(--accent); cursor: pointer; border: none;
-        }
-        .intensity-value { font-size: 0.7rem; color: var(--text-primary); font-weight: 500; min-width: 30px; text-align: right; }
         .toggle-row {
             display: flex;
             gap: 0.3rem;
@@ -151,12 +134,17 @@
             flex-direction: column;
             gap: 0.3rem;
         }
-        .anim-btn {
+        .anim-accordion {
+            border: 1px solid #334155;
+            border-radius: 0.375rem;
+            overflow: hidden;
+            transition: border-color 0.15s;
+        }
+        .anim-accordion.playing { border-color: var(--green); }
+        .anim-header {
             padding: 0.4rem 0.5rem;
             background: transparent;
             color: var(--text-secondary);
-            border: 1px solid #334155;
-            border-radius: 0.375rem;
             font-family: inherit;
             font-size: 0.7rem;
             cursor: pointer;
@@ -166,17 +154,66 @@
             display: flex;
             align-items: center;
             gap: 0.35rem;
+            border: none;
         }
-        .anim-btn:hover { border-color: var(--accent); color: var(--text-primary); }
-        .anim-btn.playing {
-            border-color: var(--green);
+        .anim-header:hover { color: var(--text-primary); }
+        .anim-accordion.playing .anim-header {
             background: rgba(34,197,94,0.12);
             color: var(--green);
         }
-        .anim-btn .anim-icon { flex-shrink: 0; font-size: 0.65rem; }
-        .anim-btn .anim-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .anim-btn .anim-dur { font-size: 0.6rem; color: var(--text-muted); flex-shrink: 0; }
-        .anim-btn.playing .anim-dur { color: var(--green); }
+        .anim-header .anim-icon { flex-shrink: 0; font-size: 0.65rem; }
+        .anim-header .anim-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .anim-header .anim-dur { font-size: 0.6rem; color: var(--text-muted); flex-shrink: 0; }
+        .anim-accordion.playing .anim-header .anim-dur { color: var(--green); }
+        .anim-header .anim-chevron {
+            font-size: 0.55rem;
+            color: var(--text-muted);
+            transition: transform 0.15s;
+            flex-shrink: 0;
+        }
+        .anim-accordion.open .anim-header .anim-chevron { transform: rotate(90deg); }
+        .anim-body {
+            display: none;
+            padding: 0.35rem 0.5rem 0.45rem;
+            border-top: 1px solid #1e293b;
+            background: rgba(0,0,0,0.15);
+        }
+        .anim-accordion.open .anim-body { display: block; }
+        .anim-slider-row {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            margin-bottom: 0.2rem;
+        }
+        .anim-slider-row:last-child { margin-bottom: 0; }
+        .anim-slider-label {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            min-width: 42px;
+            white-space: nowrap;
+        }
+        .anim-slider {
+            flex: 1; height: 3px;
+            -webkit-appearance: none; appearance: none;
+            background: #334155; border-radius: 2px; outline: none;
+        }
+        .anim-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 10px; height: 10px; border-radius: 50%;
+            background: var(--accent); cursor: pointer;
+        }
+        .anim-slider::-moz-range-thumb {
+            width: 10px; height: 10px; border-radius: 50%;
+            background: var(--accent); cursor: pointer; border: none;
+        }
+        .anim-slider-val {
+            font-size: 0.6rem;
+            color: var(--text-primary);
+            font-weight: 500;
+            min-width: 28px;
+            text-align: right;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
         .anim-empty {
             text-align: center;
             padding: 1rem 0.5rem;
@@ -577,8 +614,6 @@
             .left-panel .toolbar-btn { font-size: 0; gap: 0; justify-content: center; padding: 0.4rem; }
             .left-panel .toolbar-btn::first-letter { font-size: 0.8rem; }
             .left-panel .tool-group select { font-size: 0; width: 42px; }
-            .left-panel .intensity-control label,
-            .left-panel .intensity-value { display: none; }
             .right-panel { width: 200px; }
             .app-header { padding: 0.4rem 0.75rem; }
             .app-header h1 { font-size: 0.95rem; }
@@ -638,11 +673,6 @@
                 <div class="tool-group-items">
                     <button id="tbStopAll" class="toolbar-btn" title="Stop all animations">&#9632; Stop All</button>
                     <button id="tbLockPosition" class="toolbar-btn active">&#128274; Lock Position</button>
-                    <div class="intensity-control">
-                        <label for="intensitySlider">Intensity</label>
-                        <input type="range" id="intensitySlider" class="intensity-slider" min="0" max="100" value="10">
-                        <span id="intensityValue" class="intensity-value">100%</span>
-                    </div>
                     <div id="animButtonList" class="anim-button-list">
                         <div class="anim-empty">Upload an image to see animations</div>
                     </div>
@@ -1324,7 +1354,7 @@
     class AnimationEngine {
         constructor() {
             this.playing = false;
-            this.activeAnims = new Map(); // index -> { animation, currentTime }
+            this.activeAnims = new Map(); // index -> { animation, currentTime, paused (interval wait) }
             this.lastTimestamp = 0;
             this.onFrame = null;
             this._rafId = null;
@@ -1335,7 +1365,7 @@
             if (this.activeAnims.has(index)) {
                 this.activeAnims.delete(index);
             } else {
-                this.activeAnims.set(index, { animation, currentTime: 0 });
+                this.activeAnims.set(index, { animation, currentTime: 0, waiting: false, waitRemaining: 0 });
             }
             if (this.activeAnims.size > 0 && !this.playing) {
                 this.playing = true;
@@ -1368,10 +1398,31 @@
             // Advance time for each active animation
             const finished = [];
             for (const [index, state] of this.activeAnims) {
-                state.currentTime += dt;
+                const speed = state.animation._speed || 1;
+                const interval = state.animation._interval || 0;
+
+                // If waiting between loop iterations
+                if (state.waiting) {
+                    state.waitRemaining -= dt;
+                    if (state.waitRemaining <= 0) {
+                        state.waiting = false;
+                        state.currentTime = 0;
+                    }
+                    continue;
+                }
+
+                state.currentTime += dt * speed;
                 const dur = state.animation.duration || 1;
                 if (state.animation.loop) {
-                    state.currentTime %= dur;
+                    if (state.currentTime >= dur) {
+                        if (interval > 0) {
+                            state.currentTime = 0;
+                            state.waiting = true;
+                            state.waitRemaining = interval;
+                        } else {
+                            state.currentTime %= dur;
+                        }
+                    }
                 } else if (state.currentTime >= dur) {
                     state.currentTime = dur;
                     finished.push(index);
@@ -1396,17 +1447,21 @@
         _combineTransforms() {
             const combined = {};
             for (const [, state] of this.activeAnims) {
+                // Skip transforms while waiting (interval pause)
+                if (state.waiting) continue;
+                const intensity = state.animation._intensity ?? 1;
                 const transforms = this._interpolate(state.animation, state.currentTime);
                 for (const id in transforms) {
                     const t = transforms[id];
                     if (!combined[id]) {
                         combined[id] = { rotation: 0, translateX: 0, translateY: 0, scale: 1 };
                     }
-                    combined[id].rotation += t.rotation;
-                    combined[id].translateX += t.translateX;
-                    combined[id].translateY += t.translateY;
-                    // Scales multiply
-                    combined[id].scale *= t.scale;
+                    combined[id].rotation += t.rotation * intensity;
+                    combined[id].translateX += t.translateX * intensity;
+                    combined[id].translateY += t.translateY * intensity;
+                    // Scales multiply (with intensity adjustment)
+                    const s = 1 + (t.scale - 1) * intensity;
+                    combined[id].scale *= s;
                 }
             }
             return combined;
@@ -1609,7 +1664,6 @@
             this.fps = 0;
             this.frameCount = 0;
             this.fpsTime = performance.now();
-            this.animationIntensity = 1.0;
             this.lockPosition = true;
             this.baseAnchorState = null;
             this.canvasInitialized = false;
@@ -1697,14 +1751,6 @@
                     }
                     this.updateDebugPanel();
                 }
-            });
-
-            const intensitySlider = document.getElementById('intensitySlider');
-            const intensityValue = document.getElementById('intensityValue');
-            intensitySlider.addEventListener('input', e => {
-                const v = parseInt(e.target.value) * 10;
-                this.animationIntensity = v / 100;
-                intensityValue.textContent = v + '%';
             });
 
             document.getElementById('tbRefineAI').addEventListener('click', () => this.refineWithAI());
@@ -1971,12 +2017,75 @@
                 return;
             }
             this.project.animations.forEach((anim, i) => {
-                const btn = document.createElement('button');
-                btn.className = 'anim-btn';
-                btn.dataset.index = i;
-                btn.innerHTML = `<span class="anim-icon">&#9654;</span><span class="anim-name">${anim.name}</span><span class="anim-dur">${anim.duration || 1}s</span>`;
-                btn.addEventListener('click', () => this.toggleAnim(i));
-                list.appendChild(btn);
+                // Initialize per-animation settings if not set
+                if (anim._intensity === undefined) anim._intensity = 1.0;
+                if (anim._speed === undefined) anim._speed = 1.0;
+                if (anim._interval === undefined) anim._interval = 0;
+
+                const acc = document.createElement('div');
+                acc.className = 'anim-accordion';
+                acc.dataset.index = i;
+
+                const header = document.createElement('button');
+                header.className = 'anim-header';
+                header.innerHTML = `<span class="anim-icon">&#9654;</span><span class="anim-name">${anim.name}</span><span class="anim-dur">${anim.duration || 1}s</span><span class="anim-chevron">&#9658;</span>`;
+
+                // Click on icon area = play/stop, click elsewhere = toggle accordion
+                header.addEventListener('click', (e) => {
+                    const iconEl = header.querySelector('.anim-icon');
+                    const chevEl = header.querySelector('.anim-chevron');
+                    const rect = iconEl.getBoundingClientRect();
+                    // If click is on the play icon (left side), toggle playback
+                    if (e.clientX <= rect.right + 4) {
+                        this.toggleAnim(i);
+                    } else {
+                        acc.classList.toggle('open');
+                    }
+                });
+
+                const body = document.createElement('div');
+                body.className = 'anim-body';
+                body.innerHTML = `
+                    <div class="anim-slider-row">
+                        <span class="anim-slider-label">Intensity</span>
+                        <input type="range" class="anim-slider" data-param="intensity" min="0" max="200" value="${Math.round(anim._intensity * 100)}">
+                        <span class="anim-slider-val" data-val="intensity">${Math.round(anim._intensity * 100)}%</span>
+                    </div>
+                    <div class="anim-slider-row">
+                        <span class="anim-slider-label">Speed</span>
+                        <input type="range" class="anim-slider" data-param="speed" min="10" max="300" value="${Math.round(anim._speed * 100)}">
+                        <span class="anim-slider-val" data-val="speed">${anim._speed.toFixed(1)}x</span>
+                    </div>
+                    <div class="anim-slider-row">
+                        <span class="anim-slider-label">Interval</span>
+                        <input type="range" class="anim-slider" data-param="interval" min="0" max="50" value="${Math.round(anim._interval * 10)}">
+                        <span class="anim-slider-val" data-val="interval">${anim._interval.toFixed(1)}s</span>
+                    </div>
+                `;
+
+                // Wire up sliders
+                body.querySelectorAll('.anim-slider').forEach(slider => {
+                    slider.addEventListener('input', () => {
+                        const param = slider.dataset.param;
+                        const v = parseInt(slider.value);
+                        if (param === 'intensity') {
+                            anim._intensity = v / 100;
+                            body.querySelector('[data-val="intensity"]').textContent = v + '%';
+                        } else if (param === 'speed') {
+                            anim._speed = v / 100;
+                            body.querySelector('[data-val="speed"]').textContent = (v / 100).toFixed(1) + 'x';
+                        } else if (param === 'interval') {
+                            anim._interval = v / 10;
+                            body.querySelector('[data-val="interval"]').textContent = (v / 10).toFixed(1) + 's';
+                        }
+                    });
+                    // Stop click propagation so accordion doesn't toggle
+                    slider.addEventListener('click', e => e.stopPropagation());
+                });
+
+                acc.appendChild(header);
+                acc.appendChild(body);
+                list.appendChild(acc);
             });
         }
 
@@ -2026,12 +2135,13 @@
         }
 
         _updateAnimButtons() {
-            const btns = document.querySelectorAll('#animButtonList .anim-btn');
-            btns.forEach(btn => {
-                const idx = parseInt(btn.dataset.index);
+            const accs = document.querySelectorAll('#animButtonList .anim-accordion');
+            accs.forEach(acc => {
+                const idx = parseInt(acc.dataset.index);
                 const isPlaying = this.engine.isPlaying(idx);
-                btn.classList.toggle('playing', isPlaying);
-                btn.querySelector('.anim-icon').innerHTML = isPlaying ? '&#9632;' : '&#9654;';
+                acc.classList.toggle('playing', isPlaying);
+                const icon = acc.querySelector('.anim-icon');
+                if (icon) icon.innerHTML = isPlaying ? '&#9632;' : '&#9654;';
             });
         }
 
@@ -2066,8 +2176,6 @@
                 return;
             }
 
-            const intensity = this.animationIntensity;
-
             // Restore base state
             if (this.baseAnchorState) {
                 for (const a of this.project.anchors) {
@@ -2085,18 +2193,17 @@
                 }
             }
 
-            // Apply combined animation transforms (additive across all active anims)
+            // Apply combined animation transforms (intensity already applied per-anim in engine)
             for (const a of this.project.anchors) {
                 const t = transforms[a.id];
                 if (t) {
                     const base = this.baseAnchorState?.[a.id] || { dx: 0, dy: 0, rotation: 0, scaleX: 1, scaleY: 1 };
-                    a.rotation = base.rotation + (t.rotation || 0) * intensity;
-                    a.dx = base.dx + (t.translateX || 0) * intensity;
-                    a.dy = base.dy + (t.translateY || 0) * intensity;
+                    a.rotation = base.rotation + (t.rotation || 0);
+                    a.dx = base.dx + (t.translateX || 0);
+                    a.dy = base.dy + (t.translateY || 0);
                     const s = t.scale || 1;
-                    const adj = 1 + (s - 1) * intensity;
-                    a.scaleX = base.scaleX * adj;
-                    a.scaleY = base.scaleY * adj;
+                    a.scaleX = base.scaleX * s;
+                    a.scaleY = base.scaleY * s;
                 }
             }
 
