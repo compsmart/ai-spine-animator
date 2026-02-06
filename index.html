@@ -1,0 +1,2362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spine Studio | AI Skeletal Animation</title>
+    <style>
+        :root {
+            --bg: #0a0f1a;
+            --bg-card: #0f172a;
+            --border: #1e293b;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --green: #22c55e;
+            --green-hover: #16a34a;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-card);
+            flex-shrink: 0;
+            z-index: 100;
+        }
+        .app-header h1 { font-size: 1.1rem; font-weight: 600; }
+        .back-link { color: var(--accent); text-decoration: none; font-size: 0.8rem; }
+        .back-link:hover { text-decoration: underline; }
+        .logo { font-weight: 700; font-size: 0.85rem; letter-spacing: -0.025em; }
+        .logo span { color: var(--accent); }
+
+        /* Main layout */
+        .main-layout {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Left tools panel */
+        .left-panel {
+            width: 200px;
+            flex-shrink: 0;
+            border-right: 1px solid var(--border);
+            background: var(--bg-card);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        .left-panel::-webkit-scrollbar { width: 4px; }
+        .left-panel::-webkit-scrollbar-track { background: transparent; }
+        .left-panel::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+        .tool-group {
+            padding: 0.6rem 0.65rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .tool-group-label {
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.4rem;
+        }
+        .tool-group-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+        .tool-group-row {
+            display: flex;
+            gap: 0.3rem;
+        }
+        .tool-group-row > .toolbar-btn { flex: 1; justify-content: center; }
+        .tool-group select {
+            background: #1e293b;
+            color: var(--text-primary);
+            border: 1px solid #334155;
+            border-radius: 0.375rem;
+            padding: 0.35rem 0.4rem;
+            font-family: inherit;
+            font-size: 0.72rem;
+            width: 100%;
+        }
+        .toolbar-btn {
+            padding: 0.35rem 0.5rem;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid #334155;
+            border-radius: 0.375rem;
+            font-family: inherit;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            white-space: nowrap;
+            width: 100%;
+        }
+        .toolbar-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+        .toolbar-btn.active { border-color: var(--accent); background: rgba(99,102,241,0.15); color: var(--text-primary); }
+        .toolbar-btn.playing { border-color: var(--green); background: rgba(34,197,94,0.15); color: var(--green); }
+        .intensity-control { display: flex; align-items: center; gap: 0.4rem; }
+        .intensity-control label { font-size: 0.7rem; color: var(--text-secondary); white-space: nowrap; }
+        .intensity-slider {
+            flex: 1; height: 3px;
+            -webkit-appearance: none; appearance: none;
+            background: #334155; border-radius: 2px; outline: none;
+        }
+        .intensity-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 12px; height: 12px; border-radius: 50%;
+            background: var(--accent); cursor: pointer;
+        }
+        .intensity-slider::-moz-range-thumb {
+            width: 12px; height: 12px; border-radius: 50%;
+            background: var(--accent); cursor: pointer; border: none;
+        }
+        .intensity-value { font-size: 0.7rem; color: var(--text-primary); font-weight: 500; min-width: 30px; text-align: right; }
+        .toggle-row {
+            display: flex;
+            gap: 0.3rem;
+        }
+        .toggle-row > .toolbar-btn {
+            flex: 1;
+            justify-content: center;
+            font-size: 0.65rem;
+            padding: 0.3rem 0.25rem;
+        }
+
+        .anim-group { flex: 1; display: flex; flex-direction: column; }
+        .anim-button-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+        .anim-btn {
+            padding: 0.4rem 0.5rem;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid #334155;
+            border-radius: 0.375rem;
+            font-family: inherit;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: left;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .anim-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+        .anim-btn.playing {
+            border-color: var(--green);
+            background: rgba(34,197,94,0.12);
+            color: var(--green);
+        }
+        .anim-btn .anim-icon { flex-shrink: 0; font-size: 0.65rem; }
+        .anim-btn .anim-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .anim-btn .anim-dur { font-size: 0.6rem; color: var(--text-muted); flex-shrink: 0; }
+        .anim-btn.playing .anim-dur { color: var(--green); }
+        .anim-empty {
+            text-align: center;
+            padding: 1rem 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+        }
+
+        /* Canvas area (center) */
+        .center-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            min-height: 200px;
+        }
+        #studioCanvas {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Upload overlay (shown when no image loaded) */
+        .upload-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            background: var(--bg);
+        }
+        .upload-overlay.hidden { display: none; }
+        .upload-zone {
+            border: 2px dashed #334155;
+            border-radius: 0.75rem;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            max-width: 480px;
+            width: 90%;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(99, 102, 241, 0.05);
+        }
+        .upload-zone svg { display: block; margin: 0 auto 1rem; opacity: 0.5; }
+        .upload-zone .upload-hint { font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.6; }
+        .upload-preview-large {
+            max-width: 100%; max-height: 180px; border-radius: 0.5rem;
+            object-fit: contain; display: none; margin-top: 1rem;
+        }
+        .load-project-link {
+            color: var(--accent); font-size: 0.8rem; cursor: pointer;
+            background: none; border: none; font-family: inherit; text-decoration: underline;
+            margin-top: 1rem;
+        }
+
+        /* Processing overlay */
+        .processing-overlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 15;
+            background: var(--bg);
+        }
+        .processing-overlay.active { display: flex; }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid #334155;
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .process-status-text { font-size: 0.85rem; color: var(--text-secondary); text-align: center; margin-top: 1rem; }
+
+        /* Status bar */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            padding: 0.35rem 0.75rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            background: var(--bg-card);
+            flex-shrink: 0;
+        }
+        .status-item { display: flex; align-items: center; gap: 0.3rem; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #475569; }
+        .status-dot.active { background: var(--green); }
+
+        /* Right panel */
+        .right-panel {
+            width: 300px;
+            flex-shrink: 0;
+            border-left: 1px solid var(--border);
+            background: var(--bg-card);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .panel-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .panel-tab {
+            flex: 1;
+            padding: 0.5rem 0.5rem;
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+            border-bottom: 2px solid transparent;
+            font-family: inherit;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s;
+        }
+        .panel-tab:hover { color: var(--text-secondary); }
+        .panel-tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .panel-section { display: none; }
+        .panel-section.active { display: block; }
+
+        /* Debug panel */
+        .debug-panel { padding: 0.5rem; }
+        .debug-panel h4 {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            padding: 0 0.25rem;
+        }
+        .debug-anchor-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .debug-anchor-item {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid #1e293b;
+            border-radius: 0.375rem;
+            padding: 0.4rem 0.5rem;
+            font-size: 0.7rem;
+            transition: border-color 0.15s;
+        }
+        .debug-anchor-item.highlight {
+            border-color: var(--accent);
+            background: rgba(99,102,241,0.06);
+        }
+        .debug-anchor-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+        .debug-anchor-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .debug-anchor-type {
+            font-size: 0.6rem;
+            padding: 0.1rem 0.3rem;
+            border-radius: 0.2rem;
+            font-weight: 500;
+        }
+        .debug-anchor-type.root { background: rgba(34,197,94,0.2); color: var(--green); }
+        .debug-anchor-type.normal { background: rgba(99,102,241,0.2); color: var(--accent); }
+        .debug-anchor-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.15rem 0.75rem;
+        }
+        .debug-anchor-grid .debug-field {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .debug-field-label { color: var(--text-muted); font-size: 0.65rem; }
+        .debug-field-value {
+            color: var(--text-primary);
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.65rem;
+        }
+        .debug-field-value.changed { color: #f59e0b; }
+        .debug-empty {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        /* Export panel */
+        .export-panel { padding: 0.75rem; }
+        .export-panel h4 {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+        .export-asset-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            margin-bottom: 0.75rem;
+        }
+        .export-asset-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.5rem;
+            background: rgba(255,255,255,0.02);
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+        }
+        .asset-icon {
+            width: 28px; height: 28px; border-radius: 0.25rem;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(99,102,241,0.15); color: var(--accent); font-size: 0.8rem; flex-shrink: 0;
+        }
+        .asset-info { flex: 1; }
+        .asset-name { font-weight: 500; font-size: 0.75rem; }
+        .asset-meta { font-size: 0.65rem; color: var(--text-muted); }
+        .export-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+
+        /* Info panel */
+        .info-panel { padding: 0.75rem; }
+        .info-panel h4 {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .info-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+        }
+        .info-stat-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .info-stat-value { font-size: 0.85rem; font-weight: 600; }
+        .info-description {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            padding: 0.5rem;
+            background: rgba(255,255,255,0.02);
+            border-radius: 0.375rem;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            padding: 0.55rem 1rem;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 0.375rem;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+            width: 100%;
+        }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-primary:disabled { background: #475569; cursor: not-allowed; }
+        .btn-primary.btn-green { background: var(--green); }
+        .btn-primary.btn-green:hover { background: var(--green-hover); }
+        .btn-secondary {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid #334155;
+            border-radius: 0.375rem;
+            font-family: inherit;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            width: 100%;
+        }
+        .btn-secondary:hover { border-color: var(--accent); }
+        .btn-ghost {
+            padding: 0.4rem 0.75rem;
+            background: transparent;
+            color: var(--text-secondary);
+            border: none;
+            font-family: inherit;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        .btn-ghost:hover { color: var(--text-primary); }
+
+        /* Modal */
+        .modal-backdrop {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            width: 380px;
+            max-height: 450px;
+            overflow-y: auto;
+        }
+        .modal h3 { margin-bottom: 0.75rem; font-size: 0.95rem; }
+        .modal-close {
+            float: right;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+        .project-list-item {
+            padding: 0.6rem;
+            border: 1px solid #334155;
+            border-radius: 0.375rem;
+            margin-bottom: 0.4rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .project-list-item:hover { border-color: var(--accent); }
+        .proj-name { font-weight: 500; font-size: 0.8rem; }
+        .proj-meta { font-size: 0.65rem; color: var(--text-secondary); margin-top: 0.15rem; }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 0.35rem;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        /* Scrollbar styling */
+        .panel-content::-webkit-scrollbar { width: 4px; }
+        .panel-content::-webkit-scrollbar-track { background: transparent; }
+        .panel-content::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+        .panel-content::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Mobile */
+        @media (max-width: 1024px) {
+            .left-panel { width: 170px; }
+            .right-panel { width: 240px; }
+        }
+        @media (max-width: 768px) {
+            .left-panel { width: 52px; overflow: hidden; }
+            .left-panel .tool-group-label { display: none; }
+            .left-panel .toolbar-btn { font-size: 0; gap: 0; justify-content: center; padding: 0.4rem; }
+            .left-panel .toolbar-btn::first-letter { font-size: 0.8rem; }
+            .left-panel .tool-group select { font-size: 0; width: 42px; }
+            .left-panel .intensity-control label,
+            .left-panel .intensity-value { display: none; }
+            .right-panel { width: 200px; }
+            .app-header { padding: 0.4rem 0.75rem; }
+            .app-header h1 { font-size: 0.95rem; }
+            .logo { display: none; }
+        }
+        @media (max-width: 600px) {
+            .right-panel { display: none; }
+            .left-panel { width: 48px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="app-header">
+        <a href="https://saas.compsmart.cloud" class="back-link">&larr; Back to Hub</a>
+        <h1>Spine Studio</h1>
+        <div class="logo">COMPSMART<span> CLOUD</span></div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Left: Tools Panel -->
+        <div class="left-panel">
+            <div class="tool-group">
+                <div class="tool-group-label">Tools</div>
+                <div class="tool-group-items">
+                    <button id="tbMoveImage" class="toolbar-btn" title="Move Image">&#128247; Move Image</button>
+                    <button id="tbResetImage" class="toolbar-btn" title="Reset Image Position">&#8634; Reset Image</button>
+                    <button id="tbResetAnchors" class="toolbar-btn" title="Reset Anchor Positions">&#8635; Reset Anchors</button>
+                </div>
+            </div>
+            <div class="tool-group">
+                <div class="tool-group-label">AI</div>
+                <div class="tool-group-items">
+                    <select id="modelSelect" title="Gemini model for AI operations">
+                        <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                        <option value="gemini-3-flash-preview" selected>Gemini 3 Flash</option>
+                        <option value="gemini-3-pro-preview">Gemini 3 Pro</option>
+                    </select>
+                    <button id="tbRefineAI" class="toolbar-btn" title="Refine Anchors with AI">&#10024; Refine AI</button>
+                    <button id="tbUpdateAnims" class="toolbar-btn" title="Regenerate Animations with AI">&#127916; Update Anims</button>
+                </div>
+            </div>
+            <div class="tool-group">
+                <div class="tool-group-label">Display</div>
+                <div class="tool-group-items">
+                    <div class="toggle-row">
+                        <button class="toolbar-btn active" data-key="showAnchors" title="Toggle Anchors">Anchors</button>
+                        <button class="toolbar-btn active" data-key="showBones" title="Toggle Bones">Bones</button>
+                    </div>
+                    <button class="toolbar-btn active" data-key="showImage" title="Toggle Image">Image</button>
+                </div>
+            </div>
+            <div class="tool-group anim-group">
+                <div class="tool-group-label">Animations</div>
+                <div class="tool-group-items">
+                    <button id="tbStopAll" class="toolbar-btn" title="Stop all animations">&#9632; Stop All</button>
+                    <button id="tbLockPosition" class="toolbar-btn active">&#128274; Lock Position</button>
+                    <div class="intensity-control">
+                        <label for="intensitySlider">Intensity</label>
+                        <input type="range" id="intensitySlider" class="intensity-slider" min="0" max="100" value="10">
+                        <span id="intensityValue" class="intensity-value">100%</span>
+                    </div>
+                    <div id="animButtonList" class="anim-button-list">
+                        <div class="anim-empty">Upload an image to see animations</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center: Canvas Area -->
+        <div class="center-area">
+            <!-- Canvas Container -->
+            <div id="canvasContainer" class="canvas-container">
+                <canvas id="studioCanvas"></canvas>
+
+                <!-- Upload Overlay (shown when no image loaded) -->
+                <div id="uploadOverlay" class="upload-overlay">
+                    <div class="upload-zone" id="uploadZone">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p>Drop image here or click to upload</p>
+                        <p class="upload-hint">PNG, JPG, WebP &mdash; any 2D character or sprite</p>
+                        <img id="uploadPreview" class="upload-preview-large" alt="preview">
+                    </div>
+                    <button class="load-project-link" id="loadProjectLink">Load Existing Project</button>
+                </div>
+
+                <!-- Processing Overlay -->
+                <div id="processingOverlay" class="processing-overlay">
+                    <div class="spinner"></div>
+                    <div id="processStatusText" class="process-status-text">Initializing analysis...</div>
+                </div>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="status-item">
+                    <div class="status-dot active" id="statusDot"></div>
+                    <span id="statusText">Ready</span>
+                </div>
+                <div class="status-item" id="anchorCount">Anchors: 0</div>
+                <div class="status-item" id="boneCount">Bones: 0</div>
+                <div class="status-item" id="fpsCounter">FPS: --</div>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <div class="panel-tabs">
+                <button class="panel-tab active" data-panel="debug">Debug</button>
+                <button class="panel-tab" data-panel="info">Info</button>
+                <button class="panel-tab" data-panel="export">Export</button>
+            </div>
+            <div class="panel-content">
+                <!-- Debug Section -->
+                <div id="panelDebug" class="panel-section active">
+                    <div class="debug-panel">
+                        <h4>Anchor Positions</h4>
+                        <div id="debugAnchorList" class="debug-anchor-list">
+                            <div class="debug-empty">Upload an image to see anchor data</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Section -->
+                <div id="panelInfo" class="panel-section">
+                    <div class="info-panel">
+                        <h4>Project Info</h4>
+                        <div class="info-grid">
+                            <div class="info-stat">
+                                <div class="info-stat-label">Image Type</div>
+                                <div class="info-stat-value" id="infoImageType">--</div>
+                            </div>
+                            <div class="info-stat">
+                                <div class="info-stat-label">Dimensions</div>
+                                <div class="info-stat-value" id="infoDimensions">--</div>
+                            </div>
+                            <div class="info-stat">
+                                <div class="info-stat-label">Anchors</div>
+                                <div class="info-stat-value" id="infoAnchors">--</div>
+                            </div>
+                            <div class="info-stat">
+                                <div class="info-stat-label">Bones</div>
+                                <div class="info-stat-value" id="infoBones">--</div>
+                            </div>
+                            <div class="info-stat">
+                                <div class="info-stat-label">Animations</div>
+                                <div class="info-stat-value" id="infoAnimations">--</div>
+                            </div>
+                            <div class="info-stat">
+                                <div class="info-stat-label">Filename</div>
+                                <div class="info-stat-value" id="infoFilename">--</div>
+                            </div>
+                        </div>
+                        <div id="infoDescription" class="info-description" style="display:none;"></div>
+                        <div style="margin-top: 0.75rem;">
+                            <button id="startOverBtn" class="btn-secondary">Start Over</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Section -->
+                <div id="panelExport" class="panel-section">
+                    <div class="export-panel">
+                        <h4>Export Assets</h4>
+                        <ul class="export-asset-list">
+                            <li>
+                                <div class="asset-icon">&#128444;</div>
+                                <div class="asset-info">
+                                    <div class="asset-name" id="exportImgName">image.png</div>
+                                    <div class="asset-meta" id="exportImgMeta">Original image</div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="asset-icon">{ }</div>
+                                <div class="asset-info">
+                                    <div class="asset-name">skeleton.json</div>
+                                    <div class="asset-meta" id="exportJsonMeta">Anchors, bones, animations</div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="asset-icon">&#128196;</div>
+                                <div class="asset-info">
+                                    <div class="asset-name">README.txt</div>
+                                    <div class="asset-meta">Usage instructions</div>
+                                </div>
+                            </li>
+                        </ul>
+                        <div class="export-actions">
+                            <button id="downloadZipBtn" class="btn-primary btn-green">&#128230; Download ZIP</button>
+                            <button id="saveCloudBtn" class="btn-primary">&#9729; Save to Cloud</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Load Project -->
+    <div id="loadModal" class="modal-backdrop">
+        <div class="modal">
+            <button id="modalClose" class="modal-close">&times;</button>
+            <h3>Load Project</h3>
+            <div id="projectList"></div>
+        </div>
+    </div>
+
+
+    <!-- Hidden file input -->
+    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+
+    <!-- JSZip -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <script>
+    // ============================================================
+    // Viewport - Single source of truth for coordinate conversion
+    // ALL coordinates stored as normalized 0-1. Only Viewport
+    // converts to pixel space at render time.
+    // ============================================================
+    class Viewport {
+        constructor() {
+            this.canvasW = 0;
+            this.canvasH = 0;
+            this.imgW = 0;      // displayed image pixel width on canvas
+            this.imgH = 0;      // displayed image pixel height on canvas
+            this.offsetX = 0;   // image offset in normalized coords (view concern)
+            this.offsetY = 0;
+            this.scale = 1;     // CSS display scale factor
+        }
+
+        /** Fit image to container, returns {canvasW, canvasH} */
+        fit(naturalW, naturalH, containerW, containerH) {
+            if (naturalW <= 0 || naturalH <= 0 || containerW <= 0 || containerH <= 0) return;
+            const scale = Math.min(containerW / naturalW, containerH / naturalH);
+            this.canvasW = Math.floor(naturalW * scale);
+            this.canvasH = Math.floor(naturalH * scale);
+            this.imgW = this.canvasW;
+            this.imgH = this.canvasH;
+            this.scale = scale;
+        }
+
+        /** Convert normalized X (0-1) to canvas pixel X */
+        toPixelX(normX) {
+            return (normX + this.offsetX) * this.imgW;
+        }
+
+        /** Convert normalized Y (0-1) to canvas pixel Y */
+        toPixelY(normY) {
+            return (normY + this.offsetY) * this.imgH;
+        }
+
+        /** Convert canvas pixel X to normalized X (0-1) */
+        toNormX(pixelX) {
+            return (pixelX / this.imgW) - this.offsetX;
+        }
+
+        /** Convert canvas pixel Y to normalized Y (0-1) */
+        toNormY(pixelY) {
+            return (pixelY / this.imgH) - this.offsetY;
+        }
+
+        /** Convert mouse event to normalized coords, accounting for CSS scaling */
+        mouseToNorm(e, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const cssScaleX = canvas.width / rect.width;
+            const cssScaleY = canvas.height / rect.height;
+            const pixelX = (e.clientX - rect.left) * cssScaleX;
+            const pixelY = (e.clientY - rect.top) * cssScaleY;
+            return {
+                normX: this.toNormX(pixelX),
+                normY: this.toNormY(pixelY),
+                pixelX,
+                pixelY
+            };
+        }
+
+        /** Hit radius in normalized units (12px equivalent) */
+        hitRadius() {
+            return this.imgW > 0 ? 12 / this.imgW : 0.02;
+        }
+    }
+
+    // ============================================================
+    // SpineProject - Pure data container (all coords normalized 0-1)
+    // ============================================================
+    class SpineProject {
+        constructor() { this.reset(); }
+        reset() {
+            this.image = null;
+            this.imageUrl = '';
+            this.imageFilename = '';
+            this.imageType = '';
+            this.description = '';
+            this.anchors = [];
+            this.bones = [];
+            this.animations = [];
+            this.currentAnim = null;
+        }
+        _defaultRadius(type) {
+            return { root: 0.20, joint: 0.10, tip: 0.05 }[type] || 0.08;
+        }
+        loadAnalysis(data) {
+            this.imageType = data.image_type || '';
+            this.description = data.description || '';
+            this.anchors = (data.anchors || []).map(a => ({
+                ...a,
+                radius: a.radius || this._defaultRadius(a.type),
+                dx: 0, dy: 0,
+                rotation: 0, scaleX: 1, scaleY: 1
+            }));
+            this.bones = data.bones || [];
+            this.animations = data.animations || [];
+        }
+        toJSON() {
+            return {
+                imageFilename: this.imageFilename,
+                imageUrl: this.imageUrl,
+                imageType: this.imageType,
+                description: this.description,
+                anchors: this.anchors.map(a => ({
+                    id: a.id, label: a.label, x: a.x, y: a.y, type: a.type,
+                    radius: a.radius || 0.08,
+                    dx: a.dx || 0, dy: a.dy || 0,
+                    rotation: a.rotation || 0, scaleX: a.scaleX || 1, scaleY: a.scaleY || 1
+                })),
+                bones: this.bones,
+                animations: this.animations
+            };
+        }
+        fromJSON(data, img) {
+            this.image = img;
+            this.imageUrl = data.imageUrl || '';
+            this.imageFilename = data.imageFilename || '';
+            this.imageType = data.imageType || '';
+            this.description = data.description || '';
+            this.anchors = (data.anchors || []).map(a => ({
+                ...a,
+                radius: a.radius || this._defaultRadius(a.type),
+                dx: a.dx || 0, dy: a.dy || 0,
+                rotation: a.rotation || 0, scaleX: a.scaleX || 1, scaleY: a.scaleY || 1
+            }));
+            this.bones = data.bones || [];
+            this.animations = data.animations || [];
+        }
+    }
+
+    // ============================================================
+    // NormalizedMesh - Triangle mesh entirely in 0-1 space
+    // No imgW/imgH parameters needed anywhere.
+    // ============================================================
+    class NormalizedMesh {
+        constructor(cols = 12, rows = 12) {
+            this.cols = cols;
+            this.rows = rows;
+            this.vertices = [];
+            this.triangles = [];
+        }
+
+        /** Generate grid mesh in 0-1 space with distance-based weights */
+        generate(anchors) {
+            this.vertices = [];
+            this.triangles = [];
+            const { cols, rows } = this;
+
+            // Create grid vertices in 0-1 space
+            for (let r = 0; r <= rows; r++) {
+                for (let c = 0; c <= cols; c++) {
+                    const u = c / cols;
+                    const v = r / rows;
+                    this.vertices.push({
+                        x: u, y: v,       // current deformed position (normalized)
+                        ox: u, oy: v,     // original rest position (normalized)
+                        u, v,             // texture coords (same as rest position)
+                        weights: {}
+                    });
+                }
+            }
+
+            // Create triangle indices
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const tl = r * (cols + 1) + c;
+                    const tr = tl + 1;
+                    const bl = (r + 1) * (cols + 1) + c;
+                    const br = bl + 1;
+                    this.triangles.push(tl, tr, bl, tr, br, bl);
+                }
+            }
+
+            this._computeWeights(anchors);
+        }
+
+        /** Compute per-vertex weights for each anchor (Gaussian + hard cutoff) */
+        _computeWeights(anchors) {
+            if (!anchors.length) return;
+            const K = 4.0; // Gaussian sharpness
+            for (const vert of this.vertices) {
+                let totalWeight = 0;
+                const weights = {};
+                for (const anchor of anchors) {
+                    const dist = Math.sqrt((vert.ox - anchor.x) ** 2 + (vert.oy - anchor.y) ** 2);
+                    const r = anchor.radius || 0.08;
+                    if (dist > r * 1.5) { weights[anchor.id] = 0; continue; } // hard cutoff
+                    const nd = dist / r;
+                    const w = Math.exp(-nd * nd * K); // Gaussian falloff
+                    weights[anchor.id] = w;
+                    totalWeight += w;
+                }
+                // Orphan fallback: if vertex outside all radii, assign tiny weight to nearest
+                if (totalWeight === 0) {
+                    let minDist = Infinity, nearest = null;
+                    for (const anchor of anchors) {
+                        const d = Math.sqrt((vert.ox - anchor.x) ** 2 + (vert.oy - anchor.y) ** 2);
+                        if (d < minDist) { minDist = d; nearest = anchor; }
+                    }
+                    if (nearest) weights[nearest.id] = 0.01;
+                    totalWeight = 0.01;
+                }
+                if (totalWeight > 0) {
+                    for (const id in weights) weights[id] /= totalWeight;
+                }
+                vert.weights = weights;
+            }
+        }
+
+        /** Deform mesh based on anchor transforms (all in 0-1 space) */
+        deform(anchors) {
+            for (const vert of this.vertices) {
+                let dx = 0, dy = 0;
+                for (const anchor of anchors) {
+                    const w = vert.weights[anchor.id] || 0;
+                    if (w < 0.001) continue;
+
+                    const ax = anchor.x;
+                    const ay = anchor.y;
+                    const rad = (anchor.rotation || 0) * Math.PI / 180;
+                    const cos = Math.cos(rad);
+                    const sin = Math.sin(rad);
+                    const sx = anchor.scaleX || 1;
+                    const sy = anchor.scaleY || 1;
+
+                    // Vector from anchor to vertex rest position (normalized)
+                    const relX = vert.ox - ax;
+                    const relY = vert.oy - ay;
+
+                    // Apply rotation and scale
+                    const rotX = relX * cos * sx - relY * sin * sy;
+                    const rotY = relX * sin * sx + relY * cos * sy;
+
+                    // New position = anchor + rotated offset + translation (all normalized)
+                    const newX = ax + rotX + (anchor.dx || 0);
+                    const newY = ay + rotY + (anchor.dy || 0);
+
+                    dx += (newX - vert.ox) * w;
+                    dy += (newY - vert.oy) * w;
+                }
+                vert.x = vert.ox + dx;
+                vert.y = vert.oy + dy;
+            }
+        }
+    }
+
+    // ============================================================
+    // Renderer - Draws everything on a SINGLE canvas
+    // Converts from normalized 0-1 to pixels ONLY at draw time.
+    // ============================================================
+    class Renderer {
+        constructor(canvas) {
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+        }
+
+        render(image, mesh, project, viewport, display) {
+            const ctx = this.ctx;
+            const cw = this.canvas.width;
+            const ch = this.canvas.height;
+            ctx.clearRect(0, 0, cw, ch);
+            if (!image) return;
+
+            const imgNatW = image.naturalWidth || image.width;
+            const imgNatH = image.naturalHeight || image.height;
+            const verts = mesh.vertices;
+            const tris = mesh.triangles;
+
+            // Draw deformed image via affine transform per triangle
+            if (display.showImage && verts.length && tris.length) {
+                for (let i = 0; i < tris.length; i += 3) {
+                    const v0 = verts[tris[i]];
+                    const v1 = verts[tris[i + 1]];
+                    const v2 = verts[tris[i + 2]];
+
+                    // Convert deformed vertex positions (normalized) to canvas pixels
+                    const v0x = viewport.toPixelX(v0.x);
+                    const v0y = viewport.toPixelY(v0.y);
+                    const v1x = viewport.toPixelX(v1.x);
+                    const v1y = viewport.toPixelY(v1.y);
+                    const v2x = viewport.toPixelX(v2.x);
+                    const v2y = viewport.toPixelY(v2.y);
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(v0x, v0y);
+                    ctx.lineTo(v1x, v1y);
+                    ctx.lineTo(v2x, v2y);
+                    ctx.closePath();
+                    ctx.clip();
+
+                    // Source texture coords (in image pixel space)
+                    const su0 = v0.u * imgNatW;
+                    const sv0 = v0.v * imgNatH;
+                    const su1 = v1.u * imgNatW;
+                    const sv1 = v1.v * imgNatH;
+                    const su2 = v2.u * imgNatW;
+                    const sv2 = v2.v * imgNatH;
+
+                    // Compute affine transform: source texture → canvas pixels
+                    const det = (su1 - su0) * (sv2 - sv0) - (su2 - su0) * (sv1 - sv0);
+                    if (Math.abs(det) > 0.001) {
+                        const a = ((v1x - v0x) * (sv2 - sv0) - (v2x - v0x) * (sv1 - sv0)) / det;
+                        const b = ((v2x - v0x) * (su1 - su0) - (v1x - v0x) * (su2 - su0)) / det;
+                        const c = v0x - a * su0 - b * sv0;
+                        const d = ((v1y - v0y) * (sv2 - sv0) - (v2y - v0y) * (sv1 - sv0)) / det;
+                        const e = ((v2y - v0y) * (su1 - su0) - (v1y - v0y) * (su2 - su0)) / det;
+                        const f = v0y - d * su0 - e * sv0;
+                        ctx.setTransform(a, d, b, e, c, f);
+                        ctx.drawImage(image, 0, 0);
+                        ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    }
+                    ctx.restore();
+                }
+            } else if (display.showImage) {
+                // No mesh yet, draw image directly
+                ctx.save();
+                const ox = viewport.offsetX * viewport.imgW;
+                const oy = viewport.offsetY * viewport.imgH;
+                ctx.translate(ox, oy);
+                ctx.drawImage(image, 0, 0, cw, ch);
+                ctx.restore();
+            }
+
+            // Draw bones
+            if (display.showBones) {
+                ctx.lineWidth = 2;
+                for (const bone of project.bones) {
+                    const fromA = project.anchors.find(a => a.id === bone.from);
+                    const toA = project.anchors.find(a => a.id === bone.to);
+                    if (!fromA || !toA) continue;
+
+                    const fx = viewport.toPixelX(fromA.x + (fromA.dx || 0));
+                    const fy = viewport.toPixelY(fromA.y + (fromA.dy || 0));
+                    const tx = viewport.toPixelX(toA.x + (toA.dx || 0));
+                    const ty = viewport.toPixelY(toA.y + (toA.dy || 0));
+
+                    const grad = ctx.createLinearGradient(fx, fy, tx, ty);
+                    grad.addColorStop(0, 'rgba(251, 191, 36, 0.8)');
+                    grad.addColorStop(1, 'rgba(251, 146, 60, 0.6)');
+                    ctx.strokeStyle = grad;
+                    ctx.beginPath();
+                    ctx.moveTo(fx, fy);
+                    ctx.lineTo(tx, ty);
+                    ctx.stroke();
+
+                    // Arrow at midpoint
+                    const mx = (fx + tx) / 2;
+                    const my = (fy + ty) / 2;
+                    const angle = Math.atan2(ty - fy, tx - fx);
+                    ctx.fillStyle = 'rgba(251, 191, 36, 0.6)';
+                    ctx.beginPath();
+                    ctx.moveTo(mx + Math.cos(angle) * 6, my + Math.sin(angle) * 6);
+                    ctx.lineTo(mx + Math.cos(angle + 2.5) * 4, my + Math.sin(angle + 2.5) * 4);
+                    ctx.lineTo(mx + Math.cos(angle - 2.5) * 4, my + Math.sin(angle - 2.5) * 4);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+
+            // Draw anchors
+            if (display.showAnchors) {
+                for (const anchor of project.anchors) {
+                    const x = viewport.toPixelX(anchor.x + (anchor.dx || 0));
+                    const y = viewport.toPixelY(anchor.y + (anchor.dy || 0));
+                    const isRoot = anchor.type === 'root';
+                    const radius = isRoot ? 8 : 6;
+
+                    // Draw influence radius circle
+                    if (anchor.radius) {
+                        const rPx = anchor.radius * viewport.imgW;
+                        ctx.strokeStyle = isRoot ? 'rgba(34,197,94,0.25)' : 'rgba(99,102,241,0.25)';
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([4, 4]);
+                        ctx.beginPath();
+                        ctx.arc(x, y, rPx, 0, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+
+                    ctx.shadowColor = isRoot ? '#22c55e' : '#6366f1';
+                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = isRoot ? '#22c55e' : '#6366f1';
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+
+                    ctx.font = '10px Inter, sans-serif';
+                    ctx.fillStyle = '#fff';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(anchor.label || anchor.id, x, y - radius - 5);
+                }
+            }
+        }
+    }
+
+    // ============================================================
+    // InputHandler - Mouse/touch input in normalized space
+    // ============================================================
+    class InputHandler {
+        constructor(canvas, viewport) {
+            this.canvas = canvas;
+            this.viewport = viewport;
+            this.dragging = null;
+            this.dragStartNorm = null;
+            this.dragAnchorStart = null;
+            this.moveImageMode = false;
+            this.draggingImage = false;
+            this.imgDragStart = null;
+            this.project = null;
+
+            // Callbacks
+            this.onAnchorMove = null;
+            this.onAnchorDragStart = null;
+            this.onAnchorDragEnd = null;
+            this.onImageMove = null;
+
+            canvas.addEventListener('mousedown', e => this._onDown(e));
+            canvas.addEventListener('mousemove', e => this._onMove(e));
+            canvas.addEventListener('mouseup', () => this._onUp());
+            canvas.addEventListener('mouseleave', () => this._onUp());
+            canvas.addEventListener('touchstart', e => { e.preventDefault(); this._onDown(this._touchToMouse(e)); }, { passive: false });
+            canvas.addEventListener('touchmove', e => { e.preventDefault(); this._onMove(this._touchToMouse(e)); }, { passive: false });
+            canvas.addEventListener('touchend', e => { e.preventDefault(); this._onUp(); });
+        }
+
+        _touchToMouse(e) {
+            const t = e.touches[0] || e.changedTouches[0];
+            return { clientX: t.clientX, clientY: t.clientY };
+        }
+
+        setProject(project) {
+            this.project = project;
+        }
+
+        _findAnchor(normX, normY) {
+            if (!this.project) return null;
+            const hr = this.viewport.hitRadius();
+            for (const anchor of this.project.anchors) {
+                // Hit-test at anchor's base x/y (dx/dy is for animation only)
+                const dist = Math.sqrt((normX - anchor.x) ** 2 + (normY - anchor.y) ** 2);
+                if (dist < hr) return anchor;
+            }
+            return null;
+        }
+
+        _onDown(e) {
+            if (!this.project) return;
+            const { normX, normY } = this.viewport.mouseToNorm(e, this.canvas);
+
+            if (this.moveImageMode) {
+                this.draggingImage = true;
+                this.imgDragStart = { normX, normY, ox: this.viewport.offsetX, oy: this.viewport.offsetY };
+                this.canvas.style.cursor = 'grabbing';
+            } else {
+                const anchor = this._findAnchor(normX, normY);
+                if (anchor) {
+                    this.dragging = anchor;
+                    this.dragStartNorm = { normX, normY };
+                    // Store original base position for drag delta calculation
+                    this.dragAnchorStart = { x: anchor.x, y: anchor.y };
+                    this.canvas.style.cursor = 'grabbing';
+                    if (this.onAnchorDragStart) this.onAnchorDragStart(anchor);
+                }
+            }
+        }
+
+        _onMove(e) {
+            if (!this.project) return;
+            const { normX, normY } = this.viewport.mouseToNorm(e, this.canvas);
+
+            if (this.draggingImage && this.imgDragStart) {
+                const deltaNormX = normX - this.imgDragStart.normX;
+                const deltaNormY = normY - this.imgDragStart.normY;
+                this.viewport.offsetX = this.imgDragStart.ox + deltaNormX;
+                this.viewport.offsetY = this.imgDragStart.oy + deltaNormY;
+                if (this.onImageMove) this.onImageMove();
+            } else if (this.dragging) {
+                // Update anchor's base x/y directly - no mesh deformation
+                const deltaNormX = normX - this.dragStartNorm.normX;
+                const deltaNormY = normY - this.dragStartNorm.normY;
+                this.dragging.x = Math.max(0, Math.min(1, this.dragAnchorStart.x + deltaNormX));
+                this.dragging.y = Math.max(0, Math.min(1, this.dragAnchorStart.y + deltaNormY));
+                if (this.onAnchorMove) this.onAnchorMove(this.dragging);
+            } else {
+                if (this.moveImageMode) {
+                    this.canvas.style.cursor = 'move';
+                } else {
+                    const hover = this._findAnchor(normX, normY);
+                    this.canvas.style.cursor = hover ? 'grab' : 'default';
+                }
+            }
+        }
+
+        _onUp() {
+            if (this.dragging) {
+                const anchor = this.dragging;
+                this.dragging = null;
+                this.dragStartNorm = null;
+                this.dragAnchorStart = null;
+                this.canvas.style.cursor = this.moveImageMode ? 'move' : 'default';
+                if (this.onAnchorDragEnd) this.onAnchorDragEnd(anchor);
+            }
+            if (this.draggingImage) {
+                this.draggingImage = false;
+                this.imgDragStart = null;
+                this.canvas.style.cursor = 'move';
+            }
+        }
+    }
+
+    // ============================================================
+    // AnimationEngine - Multi-animation keyframe interpolation
+    // Supports playing multiple animations simultaneously.
+    // Output transforms are additive across active animations.
+    // ============================================================
+    class AnimationEngine {
+        constructor() {
+            this.playing = false;
+            this.activeAnims = new Map(); // index -> { animation, currentTime }
+            this.lastTimestamp = 0;
+            this.onFrame = null;
+            this._rafId = null;
+        }
+
+        /** Toggle an animation on/off by index */
+        toggle(index, animation) {
+            if (this.activeAnims.has(index)) {
+                this.activeAnims.delete(index);
+            } else {
+                this.activeAnims.set(index, { animation, currentTime: 0 });
+            }
+            if (this.activeAnims.size > 0 && !this.playing) {
+                this.playing = true;
+                this.lastTimestamp = performance.now();
+                this._loop();
+            } else if (this.activeAnims.size === 0) {
+                this.playing = false;
+                if (this._rafId) cancelAnimationFrame(this._rafId);
+                this._rafId = null;
+            }
+        }
+
+        isPlaying(index) {
+            return this.activeAnims.has(index);
+        }
+
+        stopAll() {
+            this.activeAnims.clear();
+            this.playing = false;
+            if (this._rafId) cancelAnimationFrame(this._rafId);
+            this._rafId = null;
+        }
+
+        _loop() {
+            if (!this.playing) return;
+            const now = performance.now();
+            const dt = (now - this.lastTimestamp) / 1000;
+            this.lastTimestamp = now;
+
+            // Advance time for each active animation
+            const finished = [];
+            for (const [index, state] of this.activeAnims) {
+                state.currentTime += dt;
+                const dur = state.animation.duration || 1;
+                if (state.animation.loop) {
+                    state.currentTime %= dur;
+                } else if (state.currentTime >= dur) {
+                    state.currentTime = dur;
+                    finished.push(index);
+                }
+            }
+
+            // Remove non-looping finished animations
+            for (const idx of finished) this.activeAnims.delete(idx);
+
+            // Combine transforms from all active animations (additive)
+            const combined = this._combineTransforms();
+            if (this.onFrame) this.onFrame(combined);
+
+            if (this.activeAnims.size === 0) {
+                this.playing = false;
+                if (this.onFrame) this.onFrame(null); // signal stop
+            } else {
+                this._rafId = requestAnimationFrame(() => this._loop());
+            }
+        }
+
+        _combineTransforms() {
+            const combined = {};
+            for (const [, state] of this.activeAnims) {
+                const transforms = this._interpolate(state.animation, state.currentTime);
+                for (const id in transforms) {
+                    const t = transforms[id];
+                    if (!combined[id]) {
+                        combined[id] = { rotation: 0, translateX: 0, translateY: 0, scale: 1 };
+                    }
+                    combined[id].rotation += t.rotation;
+                    combined[id].translateX += t.translateX;
+                    combined[id].translateY += t.translateY;
+                    // Scales multiply
+                    combined[id].scale *= t.scale;
+                }
+            }
+            return combined;
+        }
+
+        _interpolate(animation, time) {
+            const kfs = animation.keyframes;
+            if (!kfs || kfs.length === 0) return {};
+
+            let kfA = kfs[0], kfB = kfs[kfs.length - 1];
+            for (let i = 0; i < kfs.length - 1; i++) {
+                if (time >= kfs[i].time && time <= kfs[i + 1].time) {
+                    kfA = kfs[i];
+                    kfB = kfs[i + 1];
+                    break;
+                }
+            }
+
+            const range = kfB.time - kfA.time;
+            const t = range > 0 ? (time - kfA.time) / range : 0;
+            const ease = t * t * (3 - 2 * t); // smoothstep
+
+            const result = {};
+            const allIds = new Set([
+                ...Object.keys(kfA.anchors || {}),
+                ...Object.keys(kfB.anchors || {})
+            ]);
+
+            for (const id of allIds) {
+                const a = (kfA.anchors || {})[id] || { rotation: 0, translateX: 0, translateY: 0, scale: 1 };
+                const b = (kfB.anchors || {})[id] || { rotation: 0, translateX: 0, translateY: 0, scale: 1 };
+                result[id] = {
+                    rotation: a.rotation + (b.rotation - a.rotation) * ease,
+                    translateX: (a.translateX || 0) + ((b.translateX || 0) - (a.translateX || 0)) * ease,
+                    translateY: (a.translateY || 0) + ((b.translateY || 0) - (a.translateY || 0)) * ease,
+                    scale: (a.scale || 1) + ((b.scale || 1) - (a.scale || 1)) * ease
+                };
+            }
+            return result;
+        }
+    }
+
+    // ============================================================
+    // DebugPanel - Real-time anchor position display
+    // Uses Viewport for pixel readouts
+    // ============================================================
+    class DebugPanel {
+        constructor(containerId) {
+            this.container = document.getElementById(containerId);
+            this._items = {};
+            this._activeAnchorId = null;
+        }
+
+        update(project, viewport) {
+            if (!project.anchors.length) {
+                this.container.innerHTML = '<div class="debug-empty">Upload an image to see anchor data</div>';
+                this._items = {};
+                return;
+            }
+
+            for (const anchor of project.anchors) {
+                let item = this._items[anchor.id];
+                if (!item) {
+                    item = this._createAnchorElement(anchor);
+                    this._items[anchor.id] = item;
+                }
+                this._updateAnchorElement(item, anchor, viewport);
+            }
+
+            // Remove stale items
+            for (const id in this._items) {
+                if (!project.anchors.find(a => a.id === id)) {
+                    this._items[id].el.remove();
+                    delete this._items[id];
+                }
+            }
+
+            // Rebuild container if needed
+            if (this.container.querySelector('.debug-empty')) {
+                this.container.innerHTML = '';
+            }
+            for (const anchor of project.anchors) {
+                const item = this._items[anchor.id];
+                if (!item.el.parentNode) {
+                    this.container.appendChild(item.el);
+                }
+            }
+        }
+
+        highlightAnchor(anchorId) {
+            if (this._activeAnchorId && this._items[this._activeAnchorId]) {
+                this._items[this._activeAnchorId].el.classList.remove('highlight');
+            }
+            this._activeAnchorId = anchorId;
+            if (anchorId && this._items[anchorId]) {
+                this._items[anchorId].el.classList.add('highlight');
+                this._items[anchorId].el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        }
+
+        _createAnchorElement(anchor) {
+            const el = document.createElement('div');
+            el.className = 'debug-anchor-item';
+            el.innerHTML = `
+                <div class="debug-anchor-header">
+                    <div class="debug-anchor-name">
+                        <span class="debug-anchor-type ${anchor.type === 'root' ? 'root' : 'normal'}">${anchor.type || 'anchor'}</span>
+                        ${anchor.label || anchor.id}
+                    </div>
+                </div>
+                <div class="debug-anchor-grid">
+                    <div class="debug-field">
+                        <span class="debug-field-label">x</span>
+                        <span class="debug-field-value" data-field="x">0.000</span>
+                    </div>
+                    <div class="debug-field">
+                        <span class="debug-field-label">y</span>
+                        <span class="debug-field-value" data-field="y">0.000</span>
+                    </div>
+                    <div class="debug-field">
+                        <span class="debug-field-label">dx</span>
+                        <span class="debug-field-value" data-field="dx">0.000</span>
+                    </div>
+                    <div class="debug-field">
+                        <span class="debug-field-label">dy</span>
+                        <span class="debug-field-value" data-field="dy">0.000</span>
+                    </div>
+                    <div class="debug-field">
+                        <span class="debug-field-label">px</span>
+                        <span class="debug-field-value" data-field="px">0</span>
+                    </div>
+                    <div class="debug-field">
+                        <span class="debug-field-label">py</span>
+                        <span class="debug-field-value" data-field="py">0</span>
+                    </div>
+                    <div class="debug-field">
+                        <span class="debug-field-label">radius</span>
+                        <span class="debug-field-value" data-field="radius">0.080</span>
+                    </div>
+                </div>
+            `;
+            return {
+                el,
+                fields: {
+                    x: el.querySelector('[data-field="x"]'),
+                    y: el.querySelector('[data-field="y"]'),
+                    dx: el.querySelector('[data-field="dx"]'),
+                    dy: el.querySelector('[data-field="dy"]'),
+                    px: el.querySelector('[data-field="px"]'),
+                    py: el.querySelector('[data-field="py"]'),
+                    radius: el.querySelector('[data-field="radius"]'),
+                }
+            };
+        }
+
+        _updateAnchorElement(item, anchor, viewport) {
+            const { fields } = item;
+            const dx = anchor.dx || 0;
+            const dy = anchor.dy || 0;
+            const pixelX = viewport.toPixelX(anchor.x + dx);
+            const pixelY = viewport.toPixelY(anchor.y + dy);
+
+            fields.x.textContent = anchor.x.toFixed(3);
+            fields.y.textContent = anchor.y.toFixed(3);
+
+            fields.dx.textContent = dx.toFixed(4);
+            fields.dx.className = 'debug-field-value' + (Math.abs(dx) > 0.001 ? ' changed' : '');
+
+            fields.dy.textContent = dy.toFixed(4);
+            fields.dy.className = 'debug-field-value' + (Math.abs(dy) > 0.001 ? ' changed' : '');
+
+            fields.px.textContent = Math.round(pixelX);
+            fields.py.textContent = Math.round(pixelY);
+
+            if (fields.radius) {
+                fields.radius.textContent = (anchor.radius || 0.08).toFixed(3);
+            }
+        }
+
+        clear() {
+            this.container.innerHTML = '<div class="debug-empty">Upload an image to see anchor data</div>';
+            this._items = {};
+            this._activeAnchorId = null;
+        }
+    }
+
+    // ============================================================
+    // SpineApp - Orchestrator wiring everything together
+    // ============================================================
+    class SpineApp {
+        constructor() {
+            this.project = new SpineProject();
+            this.viewport = new Viewport();
+            this.mesh = new NormalizedMesh(12, 12);
+            this.renderer = null;
+            this.input = null;
+            this.engine = new AnimationEngine();
+            this.debugPanel = new DebugPanel('debugAnchorList');
+            this.display = { showAnchors: true, showBones: true, showImage: true };
+            this.fps = 0;
+            this.frameCount = 0;
+            this.fpsTime = performance.now();
+            this.animationIntensity = 1.0;
+            this.lockPosition = true;
+            this.baseAnchorState = null;
+            this.canvasInitialized = false;
+            this._cropBounds = null;
+            this._croppedFilename = null;
+            this._statusMessages = [
+                'Analyzing image structure...',
+                'Detecting skeletal features...',
+                'Identifying anchor points...',
+                'Mapping bone hierarchy...',
+                'Generating animation curves...',
+                'Building mesh topology...',
+                'Finalizing analysis...'
+            ];
+            this._statusIndex = 0;
+            this._statusInterval = null;
+            this.initUI();
+        }
+
+        getSelectedModel() { return document.getElementById('modelSelect').value; }
+
+        initUI() {
+            // Restore model selection from localStorage
+            const modelSelect = document.getElementById('modelSelect');
+            const savedModel = localStorage.getItem('spineStudio_model');
+            if (savedModel && [...modelSelect.options].some(o => o.value === savedModel)) {
+                modelSelect.value = savedModel;
+            }
+            modelSelect.addEventListener('change', () => localStorage.setItem('spineStudio_model', modelSelect.value));
+
+            // Upload
+            const uploadZone = document.getElementById('uploadZone');
+            const fileInput = document.getElementById('fileInput');
+            uploadZone.addEventListener('click', () => fileInput.click());
+            uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+            uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+            uploadZone.addEventListener('drop', e => {
+                e.preventDefault(); uploadZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) this.uploadFile(e.dataTransfer.files[0]);
+            });
+            fileInput.addEventListener('change', () => { if (fileInput.files.length) this.uploadFile(fileInput.files[0]); });
+            document.getElementById('loadProjectLink').addEventListener('click', () => this.showLoadModal());
+
+            // Modal
+            document.getElementById('modalClose').addEventListener('click', () => { document.getElementById('loadModal').style.display = 'none'; });
+            document.getElementById('loadModal').addEventListener('click', e => {
+                if (e.target === document.getElementById('loadModal')) document.getElementById('loadModal').style.display = 'none';
+            });
+
+            // Toolbar
+            document.getElementById('tbStopAll').addEventListener('click', () => this.stopAllAnims());
+            document.getElementById('tbLockPosition').addEventListener('click', e => {
+                e.currentTarget.classList.toggle('active');
+                this.lockPosition = e.currentTarget.classList.contains('active');
+            });
+            document.getElementById('tbMoveImage').addEventListener('click', () => {
+                const btn = document.getElementById('tbMoveImage');
+                btn.classList.toggle('active');
+                if (this.input) {
+                    this.input.moveImageMode = btn.classList.contains('active');
+                    document.getElementById('studioCanvas').style.cursor = this.input.moveImageMode ? 'move' : 'default';
+                }
+            });
+            document.getElementById('tbResetImage').addEventListener('click', () => {
+                this.viewport.offsetX = 0;
+                this.viewport.offsetY = 0;
+                if (this.canvasInitialized) {
+                    this.mesh.generate(this.project.anchors);
+                    this.mesh.deform(this.project.anchors);
+                    this.renderFrame();
+                }
+            });
+            document.getElementById('tbResetAnchors').addEventListener('click', () => {
+                if (this.engine.playing) {
+                    this.stopAllAnims();
+                } else {
+                    for (const a of this.project.anchors) {
+                        a.dx = 0; a.dy = 0; a.rotation = 0; a.scaleX = 1; a.scaleY = 1;
+                    }
+                    this.baseAnchorState = null;
+                    if (this.canvasInitialized) {
+                        this.mesh.generate(this.project.anchors);
+                        this.mesh.deform(this.project.anchors);
+                        this.renderFrame();
+                    }
+                    this.updateDebugPanel();
+                }
+            });
+
+            const intensitySlider = document.getElementById('intensitySlider');
+            const intensityValue = document.getElementById('intensityValue');
+            intensitySlider.addEventListener('input', e => {
+                const v = parseInt(e.target.value) * 10;
+                this.animationIntensity = v / 100;
+                intensityValue.textContent = v + '%';
+            });
+
+            document.getElementById('tbRefineAI').addEventListener('click', () => this.refineWithAI());
+            document.getElementById('tbUpdateAnims').addEventListener('click', () => this.updateAnimationsWithAI());
+
+            document.querySelectorAll('.toolbar-btn[data-key]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    btn.classList.toggle('active');
+                    this.display[btn.dataset.key] = btn.classList.contains('active');
+                    this.renderFrame();
+                });
+            });
+
+            // Export
+            document.getElementById('downloadZipBtn').addEventListener('click', () => this.exportZip());
+            document.getElementById('saveCloudBtn').addEventListener('click', () => this.saveProject());
+            document.getElementById('startOverBtn').addEventListener('click', () => this.startOver());
+
+            // Panel tabs
+            document.querySelectorAll('.panel-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.panel-section').forEach(s => s.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById('panel' + tab.dataset.panel.charAt(0).toUpperCase() + tab.dataset.panel.slice(1)).classList.add('active');
+                });
+            });
+
+            // Init canvas immediately
+            this.initCanvas();
+            window.addEventListener('resize', () => this.resizeCanvases());
+        }
+
+        initCanvas() {
+            if (this.canvasInitialized) return;
+            this.canvasInitialized = true;
+            const canvas = document.getElementById('studioCanvas');
+            this.renderer = new Renderer(canvas);
+            this.input = new InputHandler(canvas, this.viewport);
+
+            this.input.onAnchorMove = (anchor) => {
+                // Anchor x/y changed directly - regenerate mesh weights + render
+                // No deformation needed: dx/dy stay 0 during manual drag
+                this.mesh.generate(this.project.anchors);
+                this.mesh.deform(this.project.anchors);
+                this.renderFrame();
+                this.updateDebugPanel(anchor ? anchor.id : null);
+            };
+            this.input.onAnchorDragStart = (anchor) => {
+                this.debugPanel.highlightAnchor(anchor.id);
+                document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.panel-section').forEach(s => s.classList.remove('active'));
+                document.querySelector('.panel-tab[data-panel="debug"]').classList.add('active');
+                document.getElementById('panelDebug').classList.add('active');
+            };
+            this.input.onAnchorDragEnd = (anchor) => {
+                // Final regenerate with settled position
+                this.mesh.generate(this.project.anchors);
+                this.mesh.deform(this.project.anchors);
+                this.renderFrame();
+                this.debugPanel.highlightAnchor(null);
+                this.updateDebugPanel();
+            };
+            this.input.onImageMove = () => {
+                this.mesh.deform(this.project.anchors);
+                this.renderFrame();
+            };
+            this.engine.onFrame = (transforms) => this.applyAnimation(transforms);
+
+            this.resizeCanvases();
+        }
+
+        resizeCanvases() {
+            const container = document.getElementById('canvasContainer');
+            if (!container) return;
+            const cw = container.clientWidth;
+            const ch = container.clientHeight;
+            if (!this.project.image || cw <= 0 || ch <= 0) return;
+
+            const imgNatW = this.project.image.naturalWidth;
+            const imgNatH = this.project.image.naturalHeight;
+            this.viewport.fit(imgNatW, imgNatH, cw, ch);
+
+            const canvas = document.getElementById('studioCanvas');
+            canvas.width = this.viewport.canvasW;
+            canvas.height = this.viewport.canvasH;
+            canvas.style.width = this.viewport.canvasW + 'px';
+            canvas.style.height = this.viewport.canvasH + 'px';
+
+            if (this.project.image) {
+                this.input.setProject(this.project);
+                this.mesh.generate(this.project.anchors);
+                this.mesh.deform(this.project.anchors);
+                this.renderFrame();
+                this.updateDebugPanel();
+            }
+        }
+
+        updateDebugPanel(highlightId) {
+            this.debugPanel.update(this.project, this.viewport);
+            if (highlightId) this.debugPanel.highlightAnchor(highlightId);
+        }
+
+        updateInfoPanel() {
+            const imgW = this.project.image ? this.project.image.naturalWidth : 0;
+            const imgH = this.project.image ? this.project.image.naturalHeight : 0;
+            document.getElementById('infoImageType').textContent = this.project.imageType || '--';
+            document.getElementById('infoDimensions').textContent = imgW ? `${imgW}x${imgH}` : '--';
+            document.getElementById('infoAnchors').textContent = this.project.anchors.length || '--';
+            document.getElementById('infoBones').textContent = this.project.bones.length || '--';
+            document.getElementById('infoAnimations').textContent = this.project.animations.length || '--';
+            document.getElementById('infoFilename').textContent = this.project.imageFilename || '--';
+            const desc = document.getElementById('infoDescription');
+            if (this.project.description) {
+                desc.textContent = this.project.description;
+                desc.style.display = 'block';
+            } else {
+                desc.style.display = 'none';
+            }
+        }
+
+        updateExportPanel() {
+            const imgW = this.project.image ? this.project.image.naturalWidth : 0;
+            const imgH = this.project.image ? this.project.image.naturalHeight : 0;
+            document.getElementById('exportImgMeta').textContent = `${this.project.imageFilename || 'image.png'} (${imgW} x ${imgH})`;
+            document.getElementById('exportJsonMeta').textContent = `${this.project.anchors.length} anchors, ${this.project.bones.length} bones, ${this.project.animations.length} animations`;
+        }
+
+        async uploadFile(file) {
+            if (!file.type.startsWith('image/')) { alert('Please upload an image file'); return; }
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('action', 'upload');
+            try {
+                const resp = await fetch('api.php?action=upload', { method: 'POST', body: formData });
+                const result = await resp.json();
+                if (result.status !== 'success') throw new Error(result.message);
+                this.project.imageFilename = result.filename;
+                this.project.imageUrl = result.url;
+                const img = new Image();
+                img.onload = () => {
+                    this.project.image = img;
+                    this.startAnalysis();
+                };
+                img.src = result.url;
+            } catch (err) { alert('Upload failed: ' + err.message); }
+        }
+
+        getOpaqueBounds(img) {
+            const w = img.naturalWidth, h = img.naturalHeight;
+            const c = document.createElement('canvas'); c.width = w; c.height = h;
+            const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+            const data = ctx.getImageData(0, 0, w, h).data;
+            let minX = w, minY = h, maxX = 0, maxY = 0;
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    if (data[(y * w + x) * 4 + 3] > 10) {
+                        if (x < minX) minX = x; if (x > maxX) maxX = x;
+                        if (y < minY) minY = y; if (y > maxY) maxY = y;
+                    }
+                }
+            }
+            if (maxX < minX || maxY < minY) return { x: 0, y: 0, w, h };
+            return {
+                x: Math.max(0, minX - 2),
+                y: Math.max(0, minY - 2),
+                w: Math.min(w - 1, maxX + 2) - Math.max(0, minX - 2) + 1,
+                h: Math.min(h - 1, maxY + 2) - Math.max(0, minY - 2) + 1
+            };
+        }
+
+        async uploadCroppedImage(img, bounds) {
+            const c = document.createElement('canvas'); c.width = bounds.w; c.height = bounds.h;
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, bounds.x, bounds.y, bounds.w, bounds.h, 0, 0, bounds.w, bounds.h);
+            const blob = await new Promise(resolve => c.toBlob(resolve, 'image/png'));
+            const formData = new FormData();
+            formData.append('image', blob, 'cropped_' + (this.project.imageFilename || 'image.png'));
+            formData.append('action', 'upload');
+            const resp = await fetch('api.php?action=upload', { method: 'POST', body: formData });
+            const result = await resp.json();
+            if (result.status !== 'success') throw new Error(result.message);
+            return result.filename;
+        }
+
+        remapAnchorsFromCrop(anchors, bounds, origW, origH) {
+            for (const a of anchors) {
+                const pixelX = bounds.x + a.x * bounds.w;
+                const pixelY = bounds.y + a.y * bounds.h;
+                a.x = pixelX / origW;
+                a.y = pixelY / origH;
+            }
+        }
+
+        async startAnalysis() {
+            if (!this.project.imageFilename) return;
+            document.getElementById('uploadOverlay').classList.add('hidden');
+            document.getElementById('processingOverlay').classList.add('active');
+            this._statusIndex = 0;
+            document.getElementById('processStatusText').textContent = this._statusMessages[0];
+            this._statusInterval = setInterval(() => {
+                this._statusIndex = (this._statusIndex + 1) % this._statusMessages.length;
+                document.getElementById('processStatusText').textContent = this._statusMessages[this._statusIndex];
+            }, 2200);
+
+            try {
+                const origW = this.project.image.naturalWidth;
+                const origH = this.project.image.naturalHeight;
+                this._cropBounds = this.getOpaqueBounds(this.project.image);
+                const bounds = this._cropBounds;
+                let analyzeFilename = this.project.imageFilename;
+                if ((bounds.w * bounds.h) / (origW * origH) < 0.9) {
+                    this._croppedFilename = await this.uploadCroppedImage(this.project.image, bounds);
+                    analyzeFilename = this._croppedFilename;
+                } else {
+                    this._cropBounds = { x: 0, y: 0, w: origW, h: origH };
+                }
+
+                const resp = await fetch('api.php?action=analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: analyzeFilename, model: this.getSelectedModel() })
+                });
+                const result = await resp.json();
+                if (result.status !== 'success') throw new Error(result.message);
+
+                this.project.loadAnalysis(result);
+                this.remapAnchorsFromCrop(this.project.anchors, this._cropBounds, origW, origH);
+
+                clearInterval(this._statusInterval);
+
+                try {
+                    await this.refineAnchors(this.project.imageFilename, 1, 0.02);
+                } catch (e) { console.warn('Auto-refinement failed:', e.message); }
+
+                document.getElementById('processingOverlay').classList.remove('active');
+                this.onProjectReady();
+            } catch (err) {
+                clearInterval(this._statusInterval);
+                document.getElementById('processStatusText').textContent = 'Analysis failed: ' + err.message;
+                setTimeout(() => {
+                    document.getElementById('processingOverlay').classList.remove('active');
+                    document.getElementById('uploadOverlay').classList.remove('hidden');
+                }, 2000);
+                alert('Analysis failed: ' + err.message);
+            }
+        }
+
+        onProjectReady() {
+            this.resizeCanvases();
+            this.updateAnimSelect();
+            this.updateDebugPanel();
+            this.updateInfoPanel();
+            this.updateExportPanel();
+            this.updateStatusCounts();
+            this.setStatus('Ready', true);
+        }
+
+        updateAnimSelect() {
+            const list = document.getElementById('animButtonList');
+            list.innerHTML = '';
+            if (!this.project.animations.length) {
+                list.innerHTML = '<div class="anim-empty">No animations available</div>';
+                return;
+            }
+            this.project.animations.forEach((anim, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'anim-btn';
+                btn.dataset.index = i;
+                btn.innerHTML = `<span class="anim-icon">&#9654;</span><span class="anim-name">${anim.name}</span><span class="anim-dur">${anim.duration || 1}s</span>`;
+                btn.addEventListener('click', () => this.toggleAnim(i));
+                list.appendChild(btn);
+            });
+        }
+
+        renderFrame() {
+            if (!this.renderer) return;
+            this.renderer.render(this.project.image, this.mesh, this.project, this.viewport, this.display);
+            this.frameCount++;
+            const now = performance.now();
+            if (now - this.fpsTime >= 1000) {
+                this.fps = this.frameCount;
+                this.frameCount = 0;
+                this.fpsTime = now;
+                document.getElementById('fpsCounter').textContent = 'FPS: ' + this.fps;
+            }
+        }
+
+        toggleAnim(index) {
+            const anim = this.project.animations[index];
+            if (!anim) return;
+
+            // Capture base state on first animation toggle
+            if (!this.baseAnchorState) {
+                this.baseAnchorState = {};
+                this.project.anchors.forEach(a => {
+                    this.baseAnchorState[a.id] = {
+                        dx: a.dx || 0, dy: a.dy || 0,
+                        rotation: a.rotation || 0, scaleX: a.scaleX || 1, scaleY: a.scaleY || 1
+                    };
+                });
+            }
+
+            this.engine.toggle(index, anim);
+            this._updateAnimButtons();
+
+            if (this.engine.activeAnims.size > 0) {
+                const names = [...this.engine.activeAnims.values()].map(s => s.animation.name).join(', ');
+                this.setStatus('Playing: ' + names, true);
+            } else {
+                this._restoreBaseState();
+            }
+        }
+
+        stopAllAnims() {
+            this.engine.stopAll();
+            this._updateAnimButtons();
+            this._restoreBaseState();
+        }
+
+        _updateAnimButtons() {
+            const btns = document.querySelectorAll('#animButtonList .anim-btn');
+            btns.forEach(btn => {
+                const idx = parseInt(btn.dataset.index);
+                const isPlaying = this.engine.isPlaying(idx);
+                btn.classList.toggle('playing', isPlaying);
+                btn.querySelector('.anim-icon').innerHTML = isPlaying ? '&#9632;' : '&#9654;';
+            });
+        }
+
+        _restoreBaseState() {
+            if (this.baseAnchorState) {
+                for (const a of this.project.anchors) {
+                    const base = this.baseAnchorState[a.id];
+                    if (base) {
+                        a.dx = base.dx; a.dy = base.dy;
+                        a.rotation = base.rotation; a.scaleX = base.scaleX; a.scaleY = base.scaleY;
+                    } else {
+                        a.dx = 0; a.dy = 0; a.rotation = 0; a.scaleX = 1; a.scaleY = 1;
+                    }
+                }
+            }
+            this.baseAnchorState = null;
+            if (this.canvasInitialized) {
+                this.mesh.generate(this.project.anchors);
+                this.mesh.deform(this.project.anchors);
+                this.renderFrame();
+            }
+            this.updateDebugPanel();
+            this.setStatus('Stopped', true);
+        }
+
+        /** Apply combined animation transforms - translateX/Y are normalized fractions */
+        applyAnimation(transforms) {
+            // null means all animations finished
+            if (!transforms) {
+                this._updateAnimButtons();
+                this._restoreBaseState();
+                return;
+            }
+
+            const intensity = this.animationIntensity;
+
+            // Restore base state
+            if (this.baseAnchorState) {
+                for (const a of this.project.anchors) {
+                    const base = this.baseAnchorState[a.id];
+                    if (base) {
+                        a.dx = base.dx; a.dy = base.dy;
+                        a.rotation = base.rotation; a.scaleX = base.scaleX; a.scaleY = base.scaleY;
+                    } else {
+                        a.dx = 0; a.dy = 0; a.rotation = 0; a.scaleX = 1; a.scaleY = 1;
+                    }
+                }
+            } else {
+                for (const a of this.project.anchors) {
+                    a.dx = 0; a.dy = 0; a.rotation = 0; a.scaleX = 1; a.scaleY = 1;
+                }
+            }
+
+            // Apply combined animation transforms (additive across all active anims)
+            for (const a of this.project.anchors) {
+                const t = transforms[a.id];
+                if (t) {
+                    const base = this.baseAnchorState?.[a.id] || { dx: 0, dy: 0, rotation: 0, scaleX: 1, scaleY: 1 };
+                    a.rotation = base.rotation + (t.rotation || 0) * intensity;
+                    a.dx = base.dx + (t.translateX || 0) * intensity;
+                    a.dy = base.dy + (t.translateY || 0) * intensity;
+                    const s = t.scale || 1;
+                    const adj = 1 + (s - 1) * intensity;
+                    a.scaleX = base.scaleX * adj;
+                    a.scaleY = base.scaleY * adj;
+                }
+            }
+
+            // Lock position: subtract average displacement to keep image centered
+            if (this.lockPosition && this.project.anchors.length > 0) {
+                let avgDx = 0, avgDy = 0;
+                const count = this.project.anchors.length;
+                for (const a of this.project.anchors) { avgDx += a.dx || 0; avgDy += a.dy || 0; }
+                avgDx /= count; avgDy /= count;
+                for (const a of this.project.anchors) {
+                    a.dx = (a.dx || 0) - avgDx;
+                    a.dy = (a.dy || 0) - avgDy;
+                }
+            }
+
+            this.mesh.deform(this.project.anchors);
+            this.renderFrame();
+            this.updateDebugPanel();
+        }
+
+        /** Bake dx/dy offsets into the base x/y - pure normalized math */
+        bakeAnchorOffsets() {
+            for (const a of this.project.anchors) {
+                if (a.dx || a.dy) {
+                    a.x = Math.max(0, Math.min(1, a.x + (a.dx || 0)));
+                    a.y = Math.max(0, Math.min(1, a.y + (a.dy || 0)));
+                    a.dx = 0;
+                    a.dy = 0;
+                }
+            }
+        }
+
+        async refineAnchors(imageFilename, maxPasses = 2, convergenceThreshold = 0.02) {
+            const anchorsPayload = this.project.anchors.map(a => ({
+                id: a.id, label: a.label, x: a.x, y: a.y, type: a.type
+            }));
+            for (let pass = 1; pass <= maxPasses; pass++) {
+                document.getElementById('processStatusText').textContent = `Refining anchor positions... pass ${pass}/${maxPasses}`;
+                const resp = await fetch('api.php?action=refine', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: imageFilename, anchors: anchorsPayload, model: this.getSelectedModel() })
+                });
+                const result = await resp.json();
+                if (result.status !== 'success') throw new Error(result.message);
+                for (const corrected of result.anchors) {
+                    const anchor = this.project.anchors.find(a => a.id === corrected.id);
+                    if (anchor) { anchor.x = corrected.x; anchor.y = corrected.y; }
+                    const pa = anchorsPayload.find(a => a.id === corrected.id);
+                    if (pa) { pa.x = corrected.x; pa.y = corrected.y; }
+                }
+                if (result.total_movement < convergenceThreshold) break;
+            }
+        }
+
+        async refineWithAI() {
+            const btn = document.getElementById('tbRefineAI');
+            if (btn.disabled) return;
+            if (this.engine.playing) this.stopAllAnims();
+            this.bakeAnchorOffsets();
+            btn.disabled = true; btn.textContent = 'Refining...';
+            try {
+                const anchorsPayload = this.project.anchors.map(a => ({
+                    id: a.id, label: a.label, x: a.x, y: a.y, type: a.type
+                }));
+                const resp = await fetch('api.php?action=refine', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: this.project.imageFilename, anchors: anchorsPayload, model: this.getSelectedModel() })
+                });
+                const result = await resp.json();
+                if (result.status !== 'success') throw new Error(result.message);
+                for (const corrected of result.anchors) {
+                    const anchor = this.project.anchors.find(a => a.id === corrected.id);
+                    if (anchor) { anchor.x = corrected.x; anchor.y = corrected.y; anchor.dx = 0; anchor.dy = 0; }
+                }
+                if (this.canvasInitialized) {
+                    this.mesh.generate(this.project.anchors);
+                    this.mesh.deform(this.project.anchors);
+                    this.renderFrame();
+                }
+                this.updateDebugPanel();
+                this.setStatus(`Refined: ${result.corrected_count} anchor(s) corrected`, true);
+            } catch (err) { this.setStatus('Refinement failed: ' + err.message, false); }
+            finally { btn.disabled = false; btn.textContent = '\u2728 Refine AI'; }
+        }
+
+        async updateAnimationsWithAI() {
+            const btn = document.getElementById('tbUpdateAnims');
+            if (btn.disabled) return;
+            if (this.engine.playing) this.stopAllAnims();
+            this.bakeAnchorOffsets();
+            btn.disabled = true; btn.textContent = 'Updating...';
+            try {
+                const anchorsPayload = this.project.anchors.map(a => ({
+                    id: a.id, label: a.label, x: a.x, y: a.y, type: a.type, radius: a.radius || 0.08
+                }));
+                const bonesPayload = this.project.bones.map(b => ({
+                    id: b.id, from: b.from, to: b.to, parent: b.parent
+                }));
+                const resp = await fetch('api.php?action=update_animations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: this.project.imageFilename,
+                        anchors: anchorsPayload,
+                        bones: bonesPayload,
+                        model: this.getSelectedModel()
+                    })
+                });
+                const result = await resp.json();
+                if (result.status !== 'success') throw new Error(result.message);
+                this.project.animations = result.animations || [];
+                this.updateAnimSelect();
+                this.updateInfoPanel();
+                this.updateExportPanel();
+                this.setStatus(`Updated: ${this.project.animations.length} animation(s) generated`, true);
+            } catch (err) { this.setStatus('Animation update failed: ' + err.message, false); }
+            finally { btn.disabled = false; btn.textContent = '\uD83C\uDFAC Update Anims'; }
+        }
+
+        updateStatusCounts() {
+            document.getElementById('anchorCount').textContent = 'Anchors: ' + this.project.anchors.length;
+            document.getElementById('boneCount').textContent = 'Bones: ' + this.project.bones.length;
+        }
+
+        setStatus(text, active) {
+            document.getElementById('statusText').textContent = text;
+            document.getElementById('statusDot').className = 'status-dot' + (active ? ' active' : '');
+        }
+
+        async exportZip() {
+            const btn = document.getElementById('downloadZipBtn');
+            btn.disabled = true; btn.textContent = 'Building ZIP...';
+            try {
+                const zip = new JSZip();
+                const imgResp = await fetch(this.project.imageUrl);
+                zip.file('image.png', await imgResp.blob());
+                const imgW = this.project.image ? this.project.image.naturalWidth : 0;
+                const imgH = this.project.image ? this.project.image.naturalHeight : 0;
+                const skeleton = {
+                    version: '1.0',
+                    generator: 'Spine Studio - Compsmart Cloud',
+                    image: { file: 'image.png', width: imgW, height: imgH },
+                    anchors: this.project.anchors.map(a => ({ id: a.id, label: a.label, x: a.x, y: a.y, type: a.type, radius: a.radius || 0.08 })),
+                    bones: this.project.bones.map(b => ({ id: b.id, from: b.from, to: b.to, parent: b.parent })),
+                    animations: this.project.animations.map(a => ({
+                        name: a.name, duration: a.duration, loop: !!a.loop, keyframes: a.keyframes || []
+                    }))
+                };
+                zip.file('skeleton.json', JSON.stringify(skeleton, null, 2));
+                zip.file('README.txt', [
+                    'Spine Studio Export', '===================', '',
+                    'Generated by Spine Studio - Compsmart Cloud', '',
+                    'Contents:', ' image.png - The original sprite/character image',
+                    ' skeleton.json - Skeleton data (anchors, bones, animations)',
+                    ' README.txt - This file', '',
+                    'skeleton.json Format:',
+                    ' - anchors: Array of anchor points with normalized x,y (0-1)',
+                    ' - bones: Array of bone connections between anchors',
+                    ' - animations: Array of animations with keyframe data',
+                    ' - translateX/translateY values are normalized fractions of image dimensions', '',
+                    'Learn more at https://saas.compsmart.cloud'
+                ].join('\n'));
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url;
+                a.download = (this.project.imageFilename || 'spine-export').replace(/\.[^.]+$/, '') + '-spine.zip';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (err) { alert('Export failed: ' + err.message); }
+            finally { btn.disabled = false; btn.textContent = '\uD83D\uDCE6 Download ZIP'; }
+        }
+
+        async saveProject() {
+            const name = prompt('Project name:', this.project.description || 'My Animation');
+            if (!name) return;
+            try {
+                const resp = await fetch('api.php?action=save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, project: this.project.toJSON() })
+                });
+                const result = await resp.json();
+                if (result.status !== 'success') throw new Error(result.message);
+                alert('Project saved successfully!');
+            } catch (err) { alert('Save failed: ' + err.message); }
+        }
+
+        async showLoadModal() {
+            const modal = document.getElementById('loadModal');
+            const list = document.getElementById('projectList');
+            modal.style.display = 'flex';
+            list.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-secondary);">Loading...</div>';
+            try {
+                const resp = await fetch('api.php?action=projects');
+                const result = await resp.json();
+                if (result.status !== 'success') throw new Error(result.message);
+                if (!result.projects.length) {
+                    list.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-secondary);">No saved projects</div>';
+                    return;
+                }
+                list.innerHTML = result.projects.map(p => `
+                    <div class="project-list-item" data-filename="${p.filename}">
+                        <div class="proj-name">${p.name}</div>
+                        <div class="proj-meta">${p.imageType} &middot; ${new Date(p.savedAt).toLocaleDateString()}</div>
+                    </div>`).join('');
+                list.querySelectorAll('.project-list-item').forEach(el => {
+                    el.addEventListener('click', () => this.loadProject(el.dataset.filename));
+                });
+            } catch (err) {
+                list.innerHTML = '<div style="text-align: center; padding: 1rem; color: #ef4444;">Failed to load projects</div>';
+            }
+        }
+
+        async loadProject(filename) {
+            document.getElementById('loadModal').style.display = 'none';
+            try {
+                const resp = await fetch('api.php?action=load&filename=' + encodeURIComponent(filename));
+                const result = await resp.json();
+                if (result.status !== 'success') throw new Error(result.message);
+                const data = result.project;
+                const img = new Image();
+                img.onload = () => {
+                    this.project.fromJSON(data, img);
+                    // Restore viewport offset if saved (backward compat)
+                    if (data.imageOffsetX !== undefined) this.viewport.offsetX = data.imageOffsetX;
+                    if (data.imageOffsetY !== undefined) this.viewport.offsetY = data.imageOffsetY;
+                    document.getElementById('uploadOverlay').classList.add('hidden');
+                    this.canvasInitialized = false;
+                    this.initCanvas();
+                    this.onProjectReady();
+                };
+                img.onerror = () => { alert('Failed to load project image.'); };
+                img.src = data.imageUrl;
+            } catch (err) { alert('Load failed: ' + err.message); }
+        }
+
+        startOver() {
+            this.engine.stopAll();
+            this.project.reset();
+            this.viewport.offsetX = 0;
+            this.viewport.offsetY = 0;
+            this.canvasInitialized = false;
+            this._cropBounds = null;
+            this._croppedFilename = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('uploadOverlay').classList.remove('hidden');
+            document.getElementById('processingOverlay').classList.remove('active');
+            this.debugPanel.clear();
+            this.initCanvas();
+            const canvas = document.getElementById('studioCanvas');
+            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+            this.setStatus('Ready', true);
+            document.getElementById('anchorCount').textContent = 'Anchors: 0';
+            document.getElementById('boneCount').textContent = 'Bones: 0';
+        }
+    }
+
+    const app = new SpineApp();
+    </script>
+</body>
+</html>
