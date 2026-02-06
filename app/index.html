@@ -1595,6 +1595,14 @@
         getSelectedModel() { return document.getElementById('modelSelect').value; }
 
         initUI() {
+            // Restore model selection from localStorage
+            const modelSelect = document.getElementById('modelSelect');
+            const savedModel = localStorage.getItem('spineStudio_model');
+            if (savedModel && [...modelSelect.options].some(o => o.value === savedModel)) {
+                modelSelect.value = savedModel;
+            }
+            modelSelect.addEventListener('change', () => localStorage.setItem('spineStudio_model', modelSelect.value));
+
             // Upload
             const uploadZone = document.getElementById('uploadZone');
             const fileInput = document.getElementById('fileInput');
