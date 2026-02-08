@@ -10,17 +10,12 @@ from pathlib import Path
 
 def get_api_key():
     """Load Gemini API key from vault."""
-    vault_paths = [
-        '/var/www/evo/vault/gemini_key.txt',
-        '/root/.openclaw/workspace/vault/gemini_key.txt'
-    ]
-    for vault_path in vault_paths:
-        try:
-            if os.path.exists(vault_path):
-                with open(vault_path, 'r') as f:
-                    return f.read().strip()
-        except Exception:
-            continue
+    vault_path = Path(__file__).resolve().parent.parent / 'vault' / 'gemini_key.txt'
+    try:
+        if vault_path.exists():
+            return vault_path.read_text().strip()
+    except Exception:
+        pass
     return os.environ.get('GOOGLE_API_KEY') or os.environ.get('GEMINI_API_KEY')
 
 

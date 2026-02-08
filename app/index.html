@@ -7,6 +7,7 @@
     <style>
         :root {
             --bg: #0a0f1a;
+            --bg-main: #0a0f1a;
             --bg-card: #0f172a;
             --border: #1e293b;
             --accent: #6366f1;
@@ -33,17 +34,34 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.5rem 1rem;
+            padding: 0.75rem 2rem;
             border-bottom: 1px solid var(--border);
             background: var(--bg-card);
             flex-shrink: 0;
             z-index: 100;
         }
-        .app-header h1 { font-size: 1.1rem; font-weight: 600; }
-        .back-link { color: var(--accent); text-decoration: none; font-size: 0.8rem; }
-        .back-link:hover { text-decoration: underline; }
-        .logo { font-weight: 700; font-size: 0.85rem; letter-spacing: -0.025em; }
-        .logo span { color: var(--accent); }
+        .logo-link {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
+        .logo-link:hover { opacity: 1; }
+        .logo-link span { color: var(--accent); }
+        .app-header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
 
         /* Main layout */
         .main-layout {
@@ -115,6 +133,8 @@
             width: 100%;
         }
         .toolbar-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+        .btn-spinner { display: inline-block; width: 0.7em; height: 0.7em; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--accent); border-radius: 50%; animation: btn-spin 0.6s linear infinite; flex-shrink: 0; }
+        @keyframes btn-spin { to { transform: rotate(360deg); } }
         .toolbar-btn.active { border-color: var(--accent); background: rgba(99,102,241,0.15); color: var(--text-primary); }
         .toolbar-btn.playing { border-color: var(--green); background: rgba(34,197,94,0.15); color: var(--green); }
         .intensity-control { display: flex; align-items: center; gap: 0.4rem; }
@@ -149,34 +169,114 @@
         .anim-button-list {
             display: flex;
             flex-direction: column;
-            gap: 0.3rem;
+            gap: 0;
         }
-        .anim-btn {
-            padding: 0.4rem 0.5rem;
-            background: transparent;
-            color: var(--text-secondary);
+        /* Accordion animations */
+        .anim-accordion {
             border: 1px solid #334155;
             border-radius: 0.375rem;
-            font-family: inherit;
-            font-size: 0.7rem;
-            cursor: pointer;
-            transition: all 0.15s;
-            text-align: left;
-            width: 100%;
+            overflow: hidden;
+            margin-bottom: 0.3rem;
+        }
+        .anim-accordion.playing {
+            border-color: var(--green);
+            background: rgba(34,197,94,0.06);
+        }
+        .anim-header {
             display: flex;
             align-items: center;
             gap: 0.35rem;
+            width: 100%;
+            padding: 0.4rem 0.5rem;
+            background: transparent;
+            color: var(--text-secondary);
+            border: none;
+            font-family: inherit;
+            font-size: 0.7rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.15s;
         }
-        .anim-btn:hover { border-color: var(--accent); color: var(--text-primary); }
-        .anim-btn.playing {
-            border-color: var(--green);
-            background: rgba(34,197,94,0.12);
-            color: var(--green);
+        .anim-header:hover { color: var(--text-primary); background: rgba(255,255,255,0.03); }
+        .anim-accordion.playing .anim-header { color: var(--green); }
+        .anim-icon { flex-shrink: 0; font-size: 0.6rem; width: 1rem; text-align: center; }
+        .anim-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .anim-dur { font-size: 0.6rem; color: var(--text-muted); flex-shrink: 0; }
+        .anim-accordion.playing .anim-dur { color: var(--green); }
+        .anim-chevron {
+            flex-shrink: 0;
+            font-size: 0.5rem;
+            color: var(--text-muted);
+            transition: transform 0.2s;
         }
-        .anim-btn .anim-icon { flex-shrink: 0; font-size: 0.65rem; }
-        .anim-btn .anim-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .anim-btn .anim-dur { font-size: 0.6rem; color: var(--text-muted); flex-shrink: 0; }
-        .anim-btn.playing .anim-dur { color: var(--green); }
+        .anim-accordion.open .anim-chevron { transform: rotate(90deg); }
+        .anim-delete {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            cursor: pointer;
+            padding: 0 0.25rem;
+            line-height: 1;
+            flex-shrink: 0;
+            opacity: 0.4;
+            transition: all 0.15s;
+        }
+        .anim-delete:hover { opacity: 1; color: #ef4444; }
+        .anim-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.25s ease;
+            background: rgba(0,0,0,0.15);
+        }
+        .anim-accordion.open .anim-body {
+            max-height: 200px;
+        }
+        .anim-slider-row {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.6rem;
+        }
+        .anim-slider-label {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            width: 3.5rem;
+            flex-shrink: 0;
+        }
+        .anim-slider {
+            flex: 1;
+            height: 3px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #334155;
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+        .anim-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+        .anim-slider::-moz-range-thumb {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+        }
+        .anim-slider-val {
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+            width: 2.5rem;
+            text-align: right;
+            flex-shrink: 0;
+        }
         .anim-empty {
             text-align: center;
             padding: 1rem 0.5rem;
@@ -588,14 +688,123 @@
             .right-panel { display: none; }
             .left-panel { width: 48px; }
         }
+
+        /* Auth Header Components */
+        .credits-display {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .credits-display.hidden { display: none; }
+        .auth-login-btn {
+            padding: 0.5rem 1.5rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .auth-login-btn:hover { opacity: 0.9; }
+        .auth-login-btn.hidden { display: none; }
+        .user-menu { position: relative; }
+        .user-menu.hidden { display: none; }
+        .user-avatar-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+            cursor: pointer;
+            background: var(--bg-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            padding: 0;
+            overflow: hidden;
+            position: relative;
+        }
+        .user-avatar-btn:hover { box-shadow: 0 0 12px rgba(99, 102, 241, 0.3); }
+        .user-avatar-btn img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+        .user-dropdown {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            min-width: 200px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 1000;
+        }
+        .user-dropdown.active { display: block; }
+        .user-dropdown-header { padding: 1rem; border-bottom: 1px solid var(--border); }
+        .user-dropdown-email { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; }
+        .user-dropdown-menu { padding: 0.5rem 0; }
+        .user-dropdown-item {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: background 0.2s;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+        }
+        .user-dropdown-item:hover { background: var(--bg-main); }
+        .user-dropdown-divider { height: 1px; background: var(--border); margin: 0.5rem 0; }
     </style>
 </head>
 <body>
     <!-- Header -->
     <header class="app-header">
-        <a href="https://saas.compsmart.cloud" class="back-link">&larr; Back to Hub</a>
+        <a href="/saas/" class="logo-link">
+            COMPSMART <span>SAAS</span>
+        </a>
         <h1>Spine Studio</h1>
-        <div class="logo">COMPSMART<span> CLOUD</span></div>
+        <div class="header-right">
+            <div class="credits-display hidden" id="creditsDisplay">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v12M9 9l3-3 3 3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span id="creditsBalance">0</span>
+                <span style="color: var(--text-secondary);">credits</span>
+            </div>
+            <button class="auth-login-btn" id="authLoginBtn" onclick="authManager.showLoginModal()">Sign in</button>
+            <div class="user-menu hidden" id="userMenu">
+                <div class="user-avatar-btn" id="userAvatarBtn">
+                    <span id="userInitials"></span>
+                </div>
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="user-dropdown-header">
+                        <div id="userDropdownName"></div>
+                        <div class="user-dropdown-email" id="userDropdownEmail"></div>
+                    </div>
+                    <div class="user-dropdown-menu">
+                        <a href="/saas/projects/" class="user-dropdown-item">My Projects</a>
+                        <a href="/account" class="user-dropdown-item">Account Settings</a>
+                        <button class="user-dropdown-item" onclick="authManager.showCreditsModal()">Buy Credits</button>
+                        <div class="user-dropdown-divider"></div>
+                        <button class="user-dropdown-item" onclick="authManager.logout()">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </header>
 
     <!-- Main Layout -->
@@ -605,8 +814,8 @@
             <div class="tool-group">
                 <div class="tool-group-label">Tools</div>
                 <div class="tool-group-items">
-                    <button id="tbMoveImage" class="toolbar-btn" title="Move Image">&#128247; Move Image</button>
-                    <button id="tbResetImage" class="toolbar-btn" title="Reset Image Position">&#8634; Reset Image</button>
+                    <button id="tbMoveImage" class="toolbar-btn" title="Move Image" style="display:none">&#128247; Move Image</button>
+                    <button id="tbResetImage" class="toolbar-btn" title="Reset Image Position" style="display:none">&#8634; Reset Image</button>
                     <button id="tbResetAnchors" class="toolbar-btn" title="Reset Anchor Positions">&#8635; Reset Anchors</button>
                 </div>
             </div>
@@ -614,13 +823,12 @@
                 <div class="tool-group-label">AI</div>
                 <div class="tool-group-items">
                     <select id="modelSelect" title="Gemini model for AI operations">
-                        <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
                         <option value="gemini-3-flash-preview" selected>Gemini 3 Flash</option>
                         <option value="gemini-3-pro-preview">Gemini 3 Pro</option>
                     </select>
-                    <button id="tbRefineAI" class="toolbar-btn" title="Refine Anchors with AI">&#10024; Refine AI</button>
-                    <button id="tbUpdateAnims" class="toolbar-btn" title="Regenerate Animations with AI">&#127916; Update Anims</button>
+                    <button id="tbRefineAI" class="toolbar-btn" title="Redo anchor positions with AI">&#10024; Redo Anchors</button>
+                    <button id="tbUpdateAnims" class="toolbar-btn" title="Generate animations with AI">&#127916; Generate Anims</button>
+                    <button id="tbCustomAnim" class="toolbar-btn" title="Add custom animation from description">&#9999;&#65039; Custom Anim</button>
                 </div>
             </div>
             <div class="tool-group">
@@ -636,9 +844,9 @@
             <div class="tool-group anim-group">
                 <div class="tool-group-label">Animations</div>
                 <div class="tool-group-items">
-                    <button id="tbStopAll" class="toolbar-btn" title="Stop all animations">&#9632; Stop All</button>
-                    <button id="tbLockPosition" class="toolbar-btn active">&#128274; Lock Position</button>
-                    <div class="intensity-control">
+                    <button id="tbStopAll" class="toolbar-btn" title="Stop all animations" style="display:none">&#9632; Stop All</button>
+                    <button id="tbLockPosition" class="toolbar-btn active" style="display:none">&#128274; Lock Position</button>
+                    <div class="intensity-control" style="display:none">
                         <label for="intensitySlider">Intensity</label>
                         <input type="range" id="intensitySlider" class="intensity-slider" min="0" max="100" value="10">
                         <span id="intensityValue" class="intensity-value">100%</span>
@@ -795,6 +1003,9 @@
     <!-- Hidden file input -->
     <input type="file" id="fileInput" accept="image/*" style="display: none;">
 
+    <!-- Auth Manager -->
+    <script src="/saas/shared-assets/auth.js"></script>
+
     <!-- JSZip -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
@@ -938,7 +1149,7 @@
         }
 
         /** Generate grid mesh in 0-1 space with distance-based weights */
-        generate(anchors) {
+        generate(anchors, bones = []) {
             this.vertices = [];
             this.triangles = [];
             const { cols, rows } = this;
@@ -968,23 +1179,77 @@
                 }
             }
 
-            this._computeWeights(anchors);
+            this._computeWeights(anchors, bones);
         }
 
-        /** Compute per-vertex weights for each anchor (all in 0-1 space) */
-        _computeWeights(anchors) {
+        /** Compute per-anchor influence radius from connected bone lengths */
+        _computeRadii(anchors, bones) {
+            const RADIUS_MULTIPLIER = 1.5;
+            const DEFAULT_RADIUS = 0.15;
+            const MIN_RADIUS = 0.05;
+            const MAX_RADIUS = 0.4;
+
+            const anchorMap = {};
+            for (const a of anchors) anchorMap[a.id] = a;
+
+            const radii = {};
+            for (const anchor of anchors) {
+                // Find bones connected to this anchor
+                const connected = bones.filter(b => b.from === anchor.id || b.to === anchor.id);
+                if (connected.length === 0) {
+                    radii[anchor.id] = DEFAULT_RADIUS;
+                    continue;
+                }
+                // Compute bone lengths and take the max
+                let maxLen = 0;
+                for (const bone of connected) {
+                    const a1 = anchorMap[bone.from];
+                    const a2 = anchorMap[bone.to];
+                    if (!a1 || !a2) continue;
+                    const len = Math.sqrt((a1.x - a2.x) ** 2 + (a1.y - a2.y) ** 2);
+                    if (len > maxLen) maxLen = len;
+                }
+                const r = maxLen > 0 ? maxLen * RADIUS_MULTIPLIER : DEFAULT_RADIUS;
+                radii[anchor.id] = Math.min(MAX_RADIUS, Math.max(MIN_RADIUS, r));
+            }
+            return radii;
+        }
+
+        /** Compute per-vertex weights using Wendland C2 compact-support kernel */
+        _computeWeights(anchors, bones) {
             if (!anchors.length) return;
+            const radii = this._computeRadii(anchors, bones);
+            this._radii = radii;
+
             for (const vert of this.vertices) {
                 let totalWeight = 0;
                 const weights = {};
+                let nearestId = null;
+                let nearestDist = Infinity;
+
                 for (const anchor of anchors) {
                     const dist = Math.sqrt((vert.ox - anchor.x) ** 2 + (vert.oy - anchor.y) ** 2);
-                    // maxDist is the diagonal of the 0-1 unit square * 0.5
-                    const maxDist = Math.SQRT2 * 0.5;
-                    const w = 1 / (1 + (dist / maxDist) ** 2 * 16);
+                    // Track nearest anchor for safety net
+                    if (dist < nearestDist) {
+                        nearestDist = dist;
+                        nearestId = anchor.id;
+                    }
+                    const radius = radii[anchor.id];
+                    if (dist >= radius) continue; // Compact support: zero outside radius
+                    const t = dist / radius;
+                    // Wendland C2 kernel: (1-t)^4 * (1+4t)
+                    const omt = 1 - t;
+                    const w = omt * omt * omt * omt * (1 + 4 * t);
                     weights[anchor.id] = w;
                     totalWeight += w;
                 }
+
+                // Safety net: if vertex has zero total weight, assign fully to nearest anchor
+                if (totalWeight === 0 && nearestId !== null) {
+                    weights[nearestId] = 1;
+                    totalWeight = 1;
+                }
+
                 if (totalWeight > 0) {
                     for (const id in weights) weights[id] /= totalWeight;
                 }
@@ -1066,11 +1331,22 @@
                     const v2x = viewport.toPixelX(v2.x);
                     const v2y = viewport.toPixelY(v2.y);
 
+                    // Expand triangle clip region by 0.5px to eliminate seam lines
+                    const cx3 = (v0x + v1x + v2x) / 3;
+                    const cy3 = (v0y + v1y + v2y) / 3;
+                    const expand = 0.5;
+                    const e0x = v0x + (v0x - cx3) / Math.hypot(v0x - cx3, v0y - cy3) * expand;
+                    const e0y = v0y + (v0y - cy3) / Math.hypot(v0x - cx3, v0y - cy3) * expand;
+                    const e1x = v1x + (v1x - cx3) / Math.hypot(v1x - cx3, v1y - cy3) * expand;
+                    const e1y = v1y + (v1y - cy3) / Math.hypot(v1x - cx3, v1y - cy3) * expand;
+                    const e2x = v2x + (v2x - cx3) / Math.hypot(v2x - cx3, v2y - cy3) * expand;
+                    const e2y = v2y + (v2y - cy3) / Math.hypot(v2x - cx3, v2y - cy3) * expand;
+
                     ctx.save();
                     ctx.beginPath();
-                    ctx.moveTo(v0x, v0y);
-                    ctx.lineTo(v1x, v1y);
-                    ctx.lineTo(v2x, v2y);
+                    ctx.moveTo(e0x, e0y);
+                    ctx.lineTo(e1x, e1y);
+                    ctx.lineTo(e2x, e2y);
                     ctx.closePath();
                     ctx.clip();
 
@@ -1305,7 +1581,7 @@
             if (this.activeAnims.has(index)) {
                 this.activeAnims.delete(index);
             } else {
-                this.activeAnims.set(index, { animation, currentTime: 0 });
+                this.activeAnims.set(index, { animation, currentTime: 0, intervalWait: 0 });
             }
             if (this.activeAnims.size > 0 && !this.playing) {
                 this.playing = true;
@@ -1338,10 +1614,34 @@
             // Advance time for each active animation
             const finished = [];
             for (const [index, state] of this.activeAnims) {
-                state.currentTime += dt;
+                const speed = state.animation._speed || 1.0;
+                const interval = state.animation._interval || 0;
+
+                // Handle interval wait (pause between loops)
+                if (state.intervalWait > 0) {
+                    state.intervalWait -= dt;
+                    if (state.intervalWait <= 0) {
+                        state.intervalWait = 0;
+                        state.currentTime = 0;
+                    }
+                    continue;
+                }
+
+                state.currentTime += dt * speed;
                 const dur = state.animation.duration || 1;
                 if (state.animation.loop) {
-                    state.currentTime %= dur;
+                    // For seamless looping (interval=0), wrap at last keyframe time to avoid dead time
+                    const kfs = state.animation.keyframes;
+                    const lastKfTime = (kfs && kfs.length > 0) ? kfs[kfs.length - 1].time : 0;
+                    const loopDur = (interval <= 0 && lastKfTime > 0) ? lastKfTime : dur;
+                    if (state.currentTime >= loopDur) {
+                        if (interval > 0) {
+                            state.intervalWait = interval;
+                            state.currentTime = dur; // Hold at end during interval
+                        } else {
+                            state.currentTime %= loopDur;
+                        }
+                    }
                 } else if (state.currentTime >= dur) {
                     state.currentTime = dur;
                     finished.push(index);
@@ -1366,17 +1666,23 @@
         _combineTransforms() {
             const combined = {};
             for (const [, state] of this.activeAnims) {
+                // Skip if in interval wait
+                if (state.intervalWait > 0) continue;
+
+                const intensity = state.animation._intensity || 1.0;
                 const transforms = this._interpolate(state.animation, state.currentTime);
                 for (const id in transforms) {
                     const t = transforms[id];
                     if (!combined[id]) {
                         combined[id] = { rotation: 0, translateX: 0, translateY: 0, scale: 1 };
                     }
-                    combined[id].rotation += t.rotation;
-                    combined[id].translateX += t.translateX;
-                    combined[id].translateY += t.translateY;
-                    // Scales multiply
-                    combined[id].scale *= t.scale;
+                    // Apply intensity multiplier
+                    combined[id].rotation += t.rotation * intensity;
+                    combined[id].translateX += t.translateX * intensity;
+                    combined[id].translateY += t.translateY * intensity;
+                    // Scales multiply (intensity affects deviation from 1.0)
+                    const scaleDelta = (t.scale - 1) * intensity;
+                    combined[id].scale *= (1 + scaleDelta);
                 }
             }
             return combined;
@@ -1387,17 +1693,32 @@
             if (!kfs || kfs.length === 0) return {};
 
             let kfA = kfs[0], kfB = kfs[kfs.length - 1];
+            let segIndex = -1;
             for (let i = 0; i < kfs.length - 1; i++) {
                 if (time >= kfs[i].time && time <= kfs[i + 1].time) {
                     kfA = kfs[i];
                     kfB = kfs[i + 1];
+                    segIndex = i;
                     break;
                 }
             }
 
             const range = kfB.time - kfA.time;
             const t = range > 0 ? (time - kfA.time) / range : 0;
-            const ease = t * t * (3 - 2 * t); // smoothstep
+            // For seamless looping (interval=0), use asymmetric easing at loop boundaries
+            // to eliminate the rest-position dwell that smoothstep creates.
+            // Ease-out on first segment = fast departure from rest.
+            // Ease-in on last segment = fast arrival at rest.
+            // This moves the dwell from rest (invisible pause) to peak (natural hold).
+            const seamless = animation.loop && (animation._interval || 0) <= 0 && kfs.length >= 3;
+            let ease;
+            if (seamless && segIndex === 0) {
+                ease = t * (2 - t); // ease-out quadratic
+            } else if (seamless && segIndex === kfs.length - 2) {
+                ease = t * t; // ease-in quadratic
+            } else {
+                ease = t * t * (3 - 2 * t); // smoothstep
+            }
 
             const result = {};
             const allIds = new Set([
@@ -1573,6 +1894,7 @@
             this.animationIntensity = 1.0;
             this.lockPosition = true;
             this.baseAnchorState = null;
+            this._originalAnchorPositions = null;
             this.canvasInitialized = false;
             this._cropBounds = null;
             this._croppedFilename = null;
@@ -1625,6 +1947,7 @@
             document.getElementById('tbLockPosition').addEventListener('click', e => {
                 e.currentTarget.classList.toggle('active');
                 this.lockPosition = e.currentTarget.classList.contains('active');
+                this._scheduleAutosave();
             });
             document.getElementById('tbMoveImage').addEventListener('click', () => {
                 const btn = document.getElementById('tbMoveImage');
@@ -1638,26 +1961,27 @@
                 this.viewport.offsetX = 0;
                 this.viewport.offsetY = 0;
                 if (this.canvasInitialized) {
-                    this.mesh.generate(this.project.anchors);
+                    this.mesh.generate(this.project.anchors, this.project.bones);
                     this.mesh.deform(this.project.anchors);
                     this.renderFrame();
                 }
             });
             document.getElementById('tbResetAnchors').addEventListener('click', () => {
-                if (this.engine.playing) {
-                    this.stopAllAnims();
-                } else {
-                    for (const a of this.project.anchors) {
-                        a.dx = 0; a.dy = 0; a.rotation = 0; a.scaleX = 1; a.scaleY = 1;
+                if (this.engine.playing) this.stopAllAnims();
+                for (const a of this.project.anchors) {
+                    a.dx = 0; a.dy = 0; a.rotation = 0; a.scaleX = 1; a.scaleY = 1;
+                    if (this._originalAnchorPositions) {
+                        const orig = this._originalAnchorPositions.find(o => o.id === a.id);
+                        if (orig) { a.x = orig.x; a.y = orig.y; }
                     }
-                    this.baseAnchorState = null;
-                    if (this.canvasInitialized) {
-                        this.mesh.generate(this.project.anchors);
-                        this.mesh.deform(this.project.anchors);
-                        this.renderFrame();
-                    }
-                    this.updateDebugPanel();
                 }
+                this.baseAnchorState = null;
+                if (this.canvasInitialized) {
+                    this.mesh.generate(this.project.anchors, this.project.bones);
+                    this.mesh.deform(this.project.anchors);
+                    this.renderFrame();
+                }
+                this.updateDebugPanel();
             });
 
             const intensitySlider = document.getElementById('intensitySlider');
@@ -1666,16 +1990,19 @@
                 const v = parseInt(e.target.value) * 10;
                 this.animationIntensity = v / 100;
                 intensityValue.textContent = v + '%';
+                this._scheduleAutosave();
             });
 
             document.getElementById('tbRefineAI').addEventListener('click', () => this.refineWithAI());
             document.getElementById('tbUpdateAnims').addEventListener('click', () => this.updateAnimationsWithAI());
+            document.getElementById('tbCustomAnim').addEventListener('click', () => this.addCustomAnimation());
 
             document.querySelectorAll('.toolbar-btn[data-key]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     btn.classList.toggle('active');
                     this.display[btn.dataset.key] = btn.classList.contains('active');
                     this.renderFrame();
+                    this._scheduleAutosave();
                 });
             });
 
@@ -1697,6 +2024,9 @@
             // Init canvas immediately
             this.initCanvas();
             window.addEventListener('resize', () => this.resizeCanvases());
+
+            // Try to restore from autosave
+            this._tryRestoreAutosave();
         }
 
         initCanvas() {
@@ -1709,7 +2039,7 @@
             this.input.onAnchorMove = (anchor) => {
                 // Anchor x/y changed directly - regenerate mesh weights + render
                 // No deformation needed: dx/dy stay 0 during manual drag
-                this.mesh.generate(this.project.anchors);
+                this.mesh.generate(this.project.anchors, this.project.bones);
                 this.mesh.deform(this.project.anchors);
                 this.renderFrame();
                 this.updateDebugPanel(anchor ? anchor.id : null);
@@ -1723,11 +2053,12 @@
             };
             this.input.onAnchorDragEnd = (anchor) => {
                 // Final regenerate with settled position
-                this.mesh.generate(this.project.anchors);
+                this.mesh.generate(this.project.anchors, this.project.bones);
                 this.mesh.deform(this.project.anchors);
                 this.renderFrame();
                 this.debugPanel.highlightAnchor(null);
                 this.updateDebugPanel();
+                this._scheduleAutosave();
             };
             this.input.onImageMove = () => {
                 this.mesh.deform(this.project.anchors);
@@ -1757,7 +2088,7 @@
 
             if (this.project.image) {
                 this.input.setProject(this.project);
-                this.mesh.generate(this.project.anchors);
+                this.mesh.generate(this.project.anchors, this.project.bones);
                 this.mesh.deform(this.project.anchors);
                 this.renderFrame();
                 this.updateDebugPanel();
@@ -1898,7 +2229,7 @@
                 clearInterval(this._statusInterval);
 
                 try {
-                    await this.refineAnchors(this.project.imageFilename, 2, 0.02);
+                    await this.refineAnchors(this.project.imageFilename, 1, 0.02);
                 } catch (e) { console.warn('Auto-refinement failed:', e.message); }
 
                 document.getElementById('processingOverlay').classList.remove('active');
@@ -1922,22 +2253,102 @@
             this.updateExportPanel();
             this.updateStatusCounts();
             this.setStatus('Ready', true);
+            this._snapshotOriginalAnchors();
+            this._scheduleAutosave();
+        }
+
+        _snapshotOriginalAnchors() {
+            this._originalAnchorPositions = this.project.anchors.map(a => ({
+                id: a.id, x: a.x, y: a.y
+            }));
         }
 
         updateAnimSelect() {
             const list = document.getElementById('animButtonList');
+            const stopBtn = document.getElementById('tbStopAll');
             list.innerHTML = '';
             if (!this.project.animations.length) {
                 list.innerHTML = '<div class="anim-empty">No animations available</div>';
+                stopBtn.style.display = 'none';
                 return;
             }
+            stopBtn.style.display = '';
             this.project.animations.forEach((anim, i) => {
-                const btn = document.createElement('button');
-                btn.className = 'anim-btn';
-                btn.dataset.index = i;
-                btn.innerHTML = `<span class="anim-icon">&#9654;</span><span class="anim-name">${anim.name}</span><span class="anim-dur">${anim.duration || 1}s</span>`;
-                btn.addEventListener('click', () => this.toggleAnim(i));
-                list.appendChild(btn);
+                // Initialize per-animation settings if not set
+                if (anim._intensity === undefined) anim._intensity = 1.0;
+                if (anim._speed === undefined) anim._speed = 1.0;
+                if (anim._interval === undefined) anim._interval = 0;
+
+                const acc = document.createElement('div');
+                acc.className = 'anim-accordion';
+                acc.dataset.index = i;
+
+                const header = document.createElement('button');
+                header.className = 'anim-header';
+                header.innerHTML = `<span class="anim-icon">&#9654;</span><span class="anim-name">${anim.name}</span><span class="anim-dur">${anim.duration || 1}s</span><button class="anim-delete" title="Delete animation">&#10005;</button><span class="anim-chevron">&#9658;</span>`;
+
+                // Delete button
+                header.querySelector('.anim-delete').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.deleteAnimation(i);
+                });
+
+                // Click on icon area = play/stop, click elsewhere = toggle accordion
+                header.addEventListener('click', (e) => {
+                    if (e.target.closest('.anim-delete')) return;
+                    const iconEl = header.querySelector('.anim-icon');
+                    const rect = iconEl.getBoundingClientRect();
+                    // If click is on the play icon (left side), toggle playback
+                    if (e.clientX <= rect.right + 4) {
+                        this.toggleAnim(i);
+                    } else {
+                        acc.classList.toggle('open');
+                    }
+                });
+
+                const body = document.createElement('div');
+                body.className = 'anim-body';
+                body.innerHTML = `
+                    <div class="anim-slider-row">
+                        <span class="anim-slider-label">Intensity</span>
+                        <input type="range" class="anim-slider" data-param="intensity" min="0" max="200" value="${Math.round(anim._intensity * 100)}">
+                        <span class="anim-slider-val" data-val="intensity">${Math.round(anim._intensity * 100)}%</span>
+                    </div>
+                    <div class="anim-slider-row">
+                        <span class="anim-slider-label">Speed</span>
+                        <input type="range" class="anim-slider" data-param="speed" min="10" max="300" value="${Math.round(anim._speed * 100)}">
+                        <span class="anim-slider-val" data-val="speed">${anim._speed.toFixed(1)}x</span>
+                    </div>
+                    <div class="anim-slider-row">
+                        <span class="anim-slider-label">Interval</span>
+                        <input type="range" class="anim-slider" data-param="interval" min="0" max="50" value="${Math.round(anim._interval * 10)}">
+                        <span class="anim-slider-val" data-val="interval">${anim._interval.toFixed(1)}s</span>
+                    </div>
+                `;
+
+                // Wire up sliders
+                body.querySelectorAll('.anim-slider').forEach(slider => {
+                    slider.addEventListener('input', () => {
+                        const param = slider.dataset.param;
+                        const v = parseInt(slider.value);
+                        if (param === 'intensity') {
+                            anim._intensity = v / 100;
+                            body.querySelector('[data-val="intensity"]').textContent = v + '%';
+                        } else if (param === 'speed') {
+                            anim._speed = v / 100;
+                            body.querySelector('[data-val="speed"]').textContent = (v / 100).toFixed(1) + 'x';
+                        } else if (param === 'interval') {
+                            anim._interval = v / 10;
+                            body.querySelector('[data-val="interval"]').textContent = (v / 10).toFixed(1) + 's';
+                        }
+                    });
+                    // Stop click propagation so accordion doesn't toggle
+                    slider.addEventListener('click', e => e.stopPropagation());
+                });
+
+                acc.appendChild(header);
+                acc.appendChild(body);
+                list.appendChild(acc);
             });
         }
 
@@ -1987,12 +2398,13 @@
         }
 
         _updateAnimButtons() {
-            const btns = document.querySelectorAll('#animButtonList .anim-btn');
-            btns.forEach(btn => {
-                const idx = parseInt(btn.dataset.index);
+            const accs = document.querySelectorAll('#animButtonList .anim-accordion');
+            accs.forEach(acc => {
+                const idx = parseInt(acc.dataset.index);
                 const isPlaying = this.engine.isPlaying(idx);
-                btn.classList.toggle('playing', isPlaying);
-                btn.querySelector('.anim-icon').innerHTML = isPlaying ? '&#9632;' : '&#9654;';
+                acc.classList.toggle('playing', isPlaying);
+                const icon = acc.querySelector('.anim-icon');
+                if (icon) icon.innerHTML = isPlaying ? '&#9632;' : '&#9654;';
             });
         }
 
@@ -2010,7 +2422,7 @@
             }
             this.baseAnchorState = null;
             if (this.canvasInitialized) {
-                this.mesh.generate(this.project.anchors);
+                this.mesh.generate(this.project.anchors, this.project.bones);
                 this.mesh.deform(this.project.anchors);
                 this.renderFrame();
             }
@@ -2090,7 +2502,7 @@
             }
         }
 
-        async refineAnchors(imageFilename, maxPasses = 2, convergenceThreshold = 0.02) {
+        async refineAnchors(imageFilename, maxPasses = 1, convergenceThreshold = 0.02) {
             const anchorsPayload = this.project.anchors.map(a => ({
                 id: a.id, label: a.label, x: a.x, y: a.y, type: a.type
             }));
@@ -2118,7 +2530,7 @@
             if (btn.disabled) return;
             if (this.engine.playing) this.stopAllAnims();
             this.bakeAnchorOffsets();
-            btn.disabled = true; btn.textContent = 'Refining...';
+            btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span> Redoing...';
             try {
                 const anchorsPayload = this.project.anchors.map(a => ({
                     id: a.id, label: a.label, x: a.x, y: a.y, type: a.type
@@ -2135,14 +2547,16 @@
                     if (anchor) { anchor.x = corrected.x; anchor.y = corrected.y; anchor.dx = 0; anchor.dy = 0; }
                 }
                 if (this.canvasInitialized) {
-                    this.mesh.generate(this.project.anchors);
+                    this.mesh.generate(this.project.anchors, this.project.bones);
                     this.mesh.deform(this.project.anchors);
                     this.renderFrame();
                 }
                 this.updateDebugPanel();
                 this.setStatus(`Refined: ${result.corrected_count} anchor(s) corrected`, true);
+                this._snapshotOriginalAnchors();
+                this._scheduleAutosave();
             } catch (err) { this.setStatus('Refinement failed: ' + err.message, false); }
-            finally { btn.disabled = false; btn.textContent = '\u2728 Refine AI'; }
+            finally { btn.disabled = false; btn.textContent = '\u2728 Redo Anchors'; }
         }
 
         async updateAnimationsWithAI() {
@@ -2150,7 +2564,7 @@
             if (btn.disabled) return;
             if (this.engine.playing) this.stopAllAnims();
             this.bakeAnchorOffsets();
-            btn.disabled = true; btn.textContent = 'Updating...';
+            btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span> Generating...';
             try {
                 const anchorsPayload = this.project.anchors.map(a => ({
                     id: a.id, label: a.label, x: a.x, y: a.y, type: a.type
@@ -2165,18 +2579,69 @@
                         filename: this.project.imageFilename,
                         anchors: anchorsPayload,
                         bones: bonesPayload,
-                        model: this.getSelectedModel()
+                        model: this.getSelectedModel(),
+                        existing: this.project.animations.map(a => a.name)
                     })
                 });
                 const result = await resp.json();
                 if (result.status !== 'success') throw new Error(result.message);
-                this.project.animations = result.animations || [];
+                const newAnims = result.animations || [];
+                this.project.animations.push(...newAnims);
                 this.updateAnimSelect();
                 this.updateInfoPanel();
                 this.updateExportPanel();
-                this.setStatus(`Updated: ${this.project.animations.length} animation(s) generated`, true);
-            } catch (err) { this.setStatus('Animation update failed: ' + err.message, false); }
-            finally { btn.disabled = false; btn.textContent = '\uD83C\uDFAC Update Anims'; }
+                this.setStatus(`Added ${newAnims.length} animation(s) (${this.project.animations.length} total)`, true);
+                this._scheduleAutosave();
+            } catch (err) { this.setStatus('Animation generation failed: ' + err.message, false); }
+            finally { btn.disabled = false; btn.textContent = '\uD83C\uDFAC Generate Anims'; }
+        }
+
+        async addCustomAnimation() {
+            const description = prompt('Describe the animation to generate:');
+            if (!description || !description.trim()) return;
+            const btn = document.getElementById('tbCustomAnim');
+            if (btn.disabled) return;
+            if (this.engine.playing) this.stopAllAnims();
+            this.bakeAnchorOffsets();
+            btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span> Generating...';
+            try {
+                const anchorsPayload = this.project.anchors.map(a => ({
+                    id: a.id, label: a.label, x: a.x, y: a.y, type: a.type
+                }));
+                const bonesPayload = this.project.bones.map(b => ({
+                    id: b.id, from: b.from, to: b.to, parent: b.parent
+                }));
+                const resp = await fetch('api.php?action=update_animations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: this.project.imageFilename,
+                        anchors: anchorsPayload,
+                        bones: bonesPayload,
+                        model: this.getSelectedModel(),
+                        description: description.trim()
+                    })
+                });
+                const result = await resp.json();
+                if (result.status !== 'success') throw new Error(result.message);
+                const newAnims = result.animations || [];
+                this.project.animations.push(...newAnims);
+                this.updateAnimSelect();
+                this.updateInfoPanel();
+                this.updateExportPanel();
+                this.setStatus(`Added custom animation "${newAnims[0]?.name || description.trim()}"`, true);
+                this._scheduleAutosave();
+            } catch (err) { this.setStatus('Custom animation failed: ' + err.message, false); }
+            finally { btn.disabled = false; btn.textContent = '\u270F\uFE0F Custom Anim'; }
+        }
+
+        deleteAnimation(index) {
+            if (this.engine.playing) this.stopAllAnims();
+            this.project.animations.splice(index, 1);
+            this.updateAnimSelect();
+            this.updateInfoPanel();
+            this.updateExportPanel();
+            this._scheduleAutosave();
         }
 
         updateStatusCounts() {
@@ -2190,6 +2655,8 @@
         }
 
         async exportZip() {
+            const approved = await window.authManager.confirmPurchase(2, 'Export ZIP', 'spine', 'export');
+            if (!approved) return;
             const btn = document.getElementById('downloadZipBtn');
             btn.disabled = true; btn.textContent = 'Building ZIP...';
             try {
@@ -2244,6 +2711,7 @@
                 const result = await resp.json();
                 if (result.status !== 'success') throw new Error(result.message);
                 alert('Project saved successfully!');
+                this._scheduleAutosave();
             } catch (err) { alert('Save failed: ' + err.message); }
         }
 
@@ -2296,7 +2764,155 @@
             } catch (err) { alert('Load failed: ' + err.message); }
         }
 
+        // === Autosave ===
+
+        _getAutosaveState() {
+            return {
+                version: 1,
+                savedAt: new Date().toISOString(),
+                project: this.project.toJSON(),
+                settings: {
+                    intensity: this.animationIntensity,
+                    lockPosition: this.lockPosition,
+                    display: { ...this.display },
+                    viewportOffsetX: this.viewport.offsetX,
+                    viewportOffsetY: this.viewport.offsetY
+                }
+            };
+        }
+
+        _scheduleAutosave() {
+            clearTimeout(this._autosaveTimer);
+            this._autosaveTimer = setTimeout(() => this._doAutosave(), 1000);
+        }
+
+        _doAutosave() {
+            if (!this.project.image) return;
+            const state = this._getAutosaveState();
+            try {
+                localStorage.setItem('spineStudio_autosave', JSON.stringify(state));
+            } catch (e) { console.warn('Autosave to localStorage failed:', e); }
+            // Fire-and-forget server sync if logged in
+            if (window.authManager && window.authManager.user) {
+                this._syncToServer(state);
+            }
+        }
+
+        _syncToServer(state) {
+            clearTimeout(this._serverSyncTimer);
+            this._serverSyncTimer = setTimeout(() => {
+                fetch('api.php?action=autosave', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(state)
+                }).catch(e => console.warn('Server autosave failed:', e));
+            }, 5000);
+        }
+
+        _clearAutosave() {
+            try { localStorage.removeItem('spineStudio_autosave'); } catch (e) {}
+            if (window.authManager && window.authManager.user) {
+                fetch('api.php?action=autosave_clear', {
+                    method: 'POST',
+                    credentials: 'include'
+                }).catch(e => console.warn('Server autosave clear failed:', e));
+            }
+        }
+
+        async _waitForAuth(maxMs = 2000) {
+            const start = Date.now();
+            while (!window.authManager?._initComplete && Date.now() - start < maxMs) {
+                await new Promise(r => setTimeout(r, 100));
+            }
+        }
+
+        async _tryRestoreAutosave() {
+            await this._waitForAuth();
+            let serverState = null;
+            let localState = null;
+
+            // Try server if logged in
+            if (window.authManager && window.authManager.user) {
+                try {
+                    const resp = await fetch('api.php?action=autosave_load', { credentials: 'include' });
+                    const data = await resp.json();
+                    if (data.status === 'success' && data.state) {
+                        serverState = data.state;
+                    }
+                } catch (e) { console.warn('Server autosave load failed:', e); }
+            }
+
+            // Try localStorage
+            try {
+                const raw = localStorage.getItem('spineStudio_autosave');
+                if (raw) localState = JSON.parse(raw);
+            } catch (e) {}
+
+            // Pick newest by savedAt
+            let chosen = null;
+            if (serverState && localState) {
+                chosen = new Date(serverState.savedAt) >= new Date(localState.savedAt) ? serverState : localState;
+            } else {
+                chosen = serverState || localState;
+            }
+
+            if (chosen && chosen.project && chosen.project.imageUrl) {
+                this._restoreFromState(chosen);
+            }
+        }
+
+        _restoreFromState(state) {
+            const img = new Image();
+            img.onload = () => {
+                this.project.fromJSON(state.project, img);
+                // Restore settings
+                if (state.settings) {
+                    if (state.settings.intensity !== undefined) this.animationIntensity = state.settings.intensity;
+                    if (state.settings.lockPosition !== undefined) this.lockPosition = state.settings.lockPosition;
+                    if (state.settings.display) this.display = { ...this.display, ...state.settings.display };
+                    if (state.settings.viewportOffsetX !== undefined) this.viewport.offsetX = state.settings.viewportOffsetX;
+                    if (state.settings.viewportOffsetY !== undefined) this.viewport.offsetY = state.settings.viewportOffsetY;
+                }
+                document.getElementById('uploadOverlay').classList.add('hidden');
+                this.canvasInitialized = false;
+                this.initCanvas();
+                this.onProjectReady();
+                this._syncUIToState();
+                this.setStatus('Restored from autosave', true);
+            };
+            img.onerror = () => {
+                console.warn('Autosave image failed to load, clearing autosave');
+                this._clearAutosave();
+            };
+            img.src = state.project.imageUrl;
+        }
+
+        _syncUIToState() {
+            // Intensity slider
+            const slider = document.getElementById('intensitySlider');
+            const valEl = document.getElementById('intensityValue');
+            if (slider) {
+                const pct = Math.round(this.animationIntensity * 100);
+                slider.value = pct / 10;
+                if (valEl) valEl.textContent = pct + '%';
+            }
+            // Lock position button
+            const lockBtn = document.getElementById('tbLockPosition');
+            if (lockBtn) {
+                lockBtn.classList.toggle('active', this.lockPosition);
+            }
+            // Display toggle buttons
+            document.querySelectorAll('.toolbar-btn[data-key]').forEach(btn => {
+                const key = btn.dataset.key;
+                if (this.display[key] !== undefined) {
+                    btn.classList.toggle('active', this.display[key]);
+                }
+            });
+        }
+
         startOver() {
+            this._clearAutosave();
             this.engine.stopAll();
             this.project.reset();
             this.viewport.offsetX = 0;

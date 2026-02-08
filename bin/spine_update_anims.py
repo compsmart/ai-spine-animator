@@ -10,21 +10,16 @@ from pathlib import Path
 
 def get_api_key():
     """Load Gemini API key from vault."""
-    vault_paths = [
-        '/var/www/evo/vault/gemini_key.txt',
-        '/root/.openclaw/workspace/vault/gemini_key.txt'
-    ]
-    for vault_path in vault_paths:
-        try:
-            if os.path.exists(vault_path):
-                with open(vault_path, 'r') as f:
-                    return f.read().strip()
-        except Exception:
-            continue
+    vault_path = Path(__file__).resolve().parent.parent / 'vault' / 'gemini_key.txt'
+    try:
+        if vault_path.exists():
+            return vault_path.read_text().strip()
+    except Exception:
+        pass
     return os.environ.get('GOOGLE_API_KEY') or os.environ.get('GEMINI_API_KEY')
 
 
-def update_animations(image_path, anchors_json, bones_json, model='gemini-3-pro-preview'):
+def update_animations(image_path, anchors_json, bones_json, model='gemini-3-pro-preview', description=None, existing=None):
     """Send image + current anchors/bones to Gemini and ask for new animations."""
     try:
         from google import genai
@@ -122,7 +117,7 @@ Current anchor positions (normalized 0-1, where 0,0 = top-left, 1,1 = bottom-rig
 Bone connections:
 {bone_list_str}
 
-Generate 3-5 context-appropriate animations for this character/image. Each animation should use the existing anchor IDs.
+{"The following animations already exist, do NOT duplicate them: " + ", ".join(existing) + chr(10) + chr(10) if existing else ""}{"Generate exactly 1 animation matching this description: " + description if description else "Generate 3-5 context-appropriate animations for this character/image"}. Each animation should use the existing anchor IDs. {"Do NOT create animations similar to: " + ", ".join(existing) + ". Create completely different animations instead." if existing else ""}
 
 Return a JSON object with this exact structure:
 {{
@@ -224,9 +219,12 @@ def main():
     parser.add_argument("--anchors", required=True, help="JSON string of current anchor positions")
     parser.add_argument("--bones", required=True, help="JSON string of bone connections")
     parser.add_argument("--model", default="gemini-3-pro-preview", help="Gemini model to use")
+    parser.add_argument("--description", default=None, help="Custom animation description (generates 1 animation)")
+    parser.add_argument("--existing", default=None, help="JSON array of existing animation names to avoid duplicating")
     args = parser.parse_args()
 
-    result = update_animations(args.image, args.anchors, args.bones, model=args.model)
+    existing = json.loads(args.existing) if args.existing else None
+    result = update_animations(args.image, args.anchors, args.bones, model=args.model, description=args.description, existing=existing)
     print(json.dumps(result))
 
     if result.get("status") == "error":

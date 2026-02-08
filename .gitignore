@@ -2,4 +2,6 @@ uploads/
 projects/
 app/uploads/
 app/projects/
+vault/
+!vault/*.example
 *.bak

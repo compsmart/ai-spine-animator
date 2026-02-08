@@ -1,4 +1,10 @@
 <?php
+require_once __DIR__ . '/../../lib/Database.php';
+require_once __DIR__ . '/../../lib/Auth.php';
+require_once __DIR__ . '/../../lib/Projects.php';
+
+Auth::startSession();
+
 header('Content-Type: application/json');
 
 $appDir = __DIR__;
@@ -69,7 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $model = $data['model'] ?? 'gemini-3-flash-preview';
-        $command = "python3 /var/www/evo/projects/saas-suite/bin/spine_analyze.py --image " . escapeshellarg($imagePath) . " --model " . escapeshellarg($model) . " 2>/dev/null";
+        $binDir = dirname(__DIR__) . '/bin';
+        $command = "python3 " . escapeshellarg($binDir . "/spine_analyze.py") . " --image " . escapeshellarg($imagePath) . " --model " . escapeshellarg($model) . " 2>/dev/null";
         $output = shell_exec($command);
 
         if (!$output) {
@@ -111,7 +118,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $anchorsJson = json_encode($anchors);
         $model = $data['model'] ?? 'gemini-3-flash-preview';
-        $command = "python3 /var/www/evo/projects/saas-suite/bin/spine_refine.py --image " . escapeshellarg($imagePath) . " --anchors " . escapeshellarg($anchorsJson) . " --model " . escapeshellarg($model) . " 2>/dev/null";
+        $binDir = dirname(__DIR__) . '/bin';
+        $command = "python3 " . escapeshellarg($binDir . "/spine_refine.py") . " --image " . escapeshellarg($imagePath) . " --anchors " . escapeshellarg($anchorsJson) . " --model " . escapeshellarg($model) . " 2>/dev/null";
         $output = shell_exec($command);
 
         if (!$output) {
@@ -155,7 +163,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $anchorsJson = json_encode($anchors);
         $bonesJson = json_encode($bones);
         $model = $data['model'] ?? 'gemini-3-flash-preview';
-        $command = "python3 /var/www/evo/projects/saas-suite/bin/spine_update_anims.py --image " . escapeshellarg($imagePath) . " --anchors " . escapeshellarg($anchorsJson) . " --bones " . escapeshellarg($bonesJson) . " --model " . escapeshellarg($model) . " 2>/dev/null";
+        $description = $data['description'] ?? '';
+        $existing = $data['existing'] ?? [];
+        $binDir = dirname(__DIR__) . '/bin';
+        $command = "python3 " . escapeshellarg($binDir . "/spine_update_anims.py") . " --image " . escapeshellarg($imagePath) . " --anchors " . escapeshellarg($anchorsJson) . " --bones " . escapeshellarg($bonesJson) . " --model " . escapeshellarg($model);
+        if (!empty($description)) {
+            $command .= " --description " . escapeshellarg($description);
+        }
+        if (!empty($existing)) {
+            $command .= " --existing " . escapeshellarg(json_encode($existing));
+        }
+        $command .= " 2>/dev/null";
         $output = shell_exec($command);
 
         if (!$output) {
@@ -199,6 +217,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($saved === false) {
             echo json_encode(['status' => 'error', 'message' => 'Failed to save project']);
             exit;
+        }
+
+        // Register project in unified projects system
+        $userId = Auth::checkAuth();
+        if ($userId) {
+            Projects::register($userId, 'spine', $filename, $projectName, 'active', null, ['savedAt' => date('c')]);
         }
 
         echo json_encode([
