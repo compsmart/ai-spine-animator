@@ -785,7 +785,7 @@
                 <span id="creditsBalance">0</span>
                 <span style="color: var(--text-secondary);">credits</span>
             </div>
-            <button class="auth-login-btn" id="authLoginBtn" onclick="authManager.showLoginModal()">Sign in</button>
+            <button class="auth-login-btn hidden" id="authLoginBtn" onclick="authManager.showLoginModal()">Sign in</button>
             <div class="user-menu hidden" id="userMenu">
                 <div class="user-avatar-btn" id="userAvatarBtn">
                     <span id="userInitials"></span>
@@ -814,6 +814,7 @@
             <div class="tool-group">
                 <div class="tool-group-label">Tools</div>
                 <div class="tool-group-items">
+                    <button id="tbNewProject" class="toolbar-btn" title="Start a new project">&#128196; New Project</button>
                     <button id="tbMoveImage" class="toolbar-btn" title="Move Image" style="display:none">&#128247; Move Image</button>
                     <button id="tbResetImage" class="toolbar-btn" title="Reset Image Position" style="display:none">&#8634; Reset Image</button>
                     <button id="tbResetAnchors" class="toolbar-btn" title="Reset Anchor Positions">&#8635; Reset Anchors</button>
@@ -990,6 +991,18 @@
         </div>
     </div>
 
+    <!-- Modal: New Project Confirm -->
+    <div id="newProjectModal" class="modal-backdrop">
+        <div class="modal" style="width:340px; text-align:center;">
+            <h3 style="margin-bottom:0.5rem;">Start New Project?</h3>
+            <p style="color:var(--text-secondary); font-size:0.8rem; margin:0 0 1.25rem;">Any unsaved work on the current project will be lost.</p>
+            <div style="display:flex; gap:0.5rem;">
+                <button id="newProjectCancel" class="btn-secondary" style="flex:1;">Cancel</button>
+                <button id="newProjectConfirm" class="btn-primary" style="flex:1; background:#ef4444;">New Project</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal: Load Project -->
     <div id="loadModal" class="modal-backdrop">
         <div class="modal">
@@ -1002,6 +1015,22 @@
 
     <!-- Hidden file input -->
     <input type="file" id="fileInput" accept="image/*" style="display: none;">
+
+    <!-- Auth Modal -->
+    <div id="auth-modal-container"></div>
+    <script>
+        fetch('/saas/shared-assets/auth-modal.html')
+            .then(r => r.text())
+            .then(html => document.getElementById('auth-modal-container').innerHTML = html);
+    </script>
+
+    <!-- Credits Modal -->
+    <div id="credits-modal-container"></div>
+    <script>
+        fetch('/saas/shared-assets/credits-modal.html')
+            .then(r => r.text())
+            .then(html => document.getElementById('credits-modal-container').innerHTML = html);
+    </script>
 
     <!-- Auth Manager -->
     <script src="/saas/shared-assets/auth.js"></script>
@@ -1693,32 +1722,22 @@
             if (!kfs || kfs.length === 0) return {};
 
             let kfA = kfs[0], kfB = kfs[kfs.length - 1];
-            let segIndex = -1;
             for (let i = 0; i < kfs.length - 1; i++) {
                 if (time >= kfs[i].time && time <= kfs[i + 1].time) {
                     kfA = kfs[i];
                     kfB = kfs[i + 1];
-                    segIndex = i;
                     break;
                 }
             }
 
             const range = kfB.time - kfA.time;
             const t = range > 0 ? (time - kfA.time) / range : 0;
-            // For seamless looping (interval=0), use asymmetric easing at loop boundaries
-            // to eliminate the rest-position dwell that smoothstep creates.
-            // Ease-out on first segment = fast departure from rest.
-            // Ease-in on last segment = fast arrival at rest.
-            // This moves the dwell from rest (invisible pause) to peak (natural hold).
+            // For seamless looping (interval=0), blend smoothstep with linear to prevent
+            // the zero-velocity dwell at the loop boundary. All segments use the same
+            // symmetric easing so the animation feels consistent throughout.
             const seamless = animation.loop && (animation._interval || 0) <= 0 && kfs.length >= 3;
-            let ease;
-            if (seamless && segIndex === 0) {
-                ease = t * (2 - t); // ease-out quadratic
-            } else if (seamless && segIndex === kfs.length - 2) {
-                ease = t * t; // ease-in quadratic
-            } else {
-                ease = t * t * (3 - 2 * t); // smoothstep
-            }
+            const ss = t * t * (3 - 2 * t); // smoothstep
+            const ease = seamless ? 0.6 * ss + 0.4 * t : ss;
 
             const result = {};
             const allIds = new Set([
@@ -1943,6 +1962,21 @@
             });
 
             // Toolbar
+            document.getElementById('tbNewProject').addEventListener('click', () => {
+                document.getElementById('newProjectModal').style.display = 'flex';
+            });
+            document.getElementById('newProjectCancel').addEventListener('click', () => {
+                document.getElementById('newProjectModal').style.display = 'none';
+            });
+            document.getElementById('newProjectConfirm').addEventListener('click', () => {
+                document.getElementById('newProjectModal').style.display = 'none';
+                this.startOver();
+            });
+            document.getElementById('newProjectModal').addEventListener('click', e => {
+                if (e.target === document.getElementById('newProjectModal')) {
+                    document.getElementById('newProjectModal').style.display = 'none';
+                }
+            });
             document.getElementById('tbStopAll').addEventListener('click', () => this.stopAllAnims());
             document.getElementById('tbLockPosition').addEventListener('click', e => {
                 e.currentTarget.classList.toggle('active');
@@ -2920,10 +2954,12 @@
             this.canvasInitialized = false;
             this._cropBounds = null;
             this._croppedFilename = null;
+            this.baseAnchorState = null;
             document.getElementById('fileInput').value = '';
             document.getElementById('uploadOverlay').classList.remove('hidden');
             document.getElementById('processingOverlay').classList.remove('active');
             this.debugPanel.clear();
+            this.updateAnimSelect();
             this.initCanvas();
             const canvas = document.getElementById('studioCanvas');
             canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
