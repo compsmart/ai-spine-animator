@@ -348,6 +348,7 @@
             background: none; border: none; font-family: inherit; text-decoration: underline;
             margin-top: 1rem;
         }
+        .load-project-link.hidden { display: none; }
 
         /* Processing overlay */
         .processing-overlay {
@@ -877,7 +878,7 @@
                         <p class="upload-hint">PNG, JPG, WebP &mdash; any 2D character or sprite</p>
                         <img id="uploadPreview" class="upload-preview-large" alt="preview">
                     </div>
-                    <button class="load-project-link" id="loadProjectLink">Load Existing Project</button>
+                    <button class="load-project-link hidden" id="loadProjectLink">Load Existing Project</button>
                 </div>
 
                 <!-- Processing Overlay -->
@@ -2249,7 +2250,9 @@
                     this._cropBounds = { x: 0, y: 0, w: origW, h: origH };
                 }
 
-                const resp = await fetch('api.php?action=analyze', {
+                const _gid = window.authManager ? authManager.getGuestId() : null;
+                const _analyzeUrl = 'api.php?action=analyze' + (_gid ? '&guest_id=' + _gid : '');
+                const resp = await fetch(_analyzeUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ filename: analyzeFilename, model: this.getSelectedModel() })
@@ -2542,7 +2545,8 @@
             }));
             for (let pass = 1; pass <= maxPasses; pass++) {
                 document.getElementById('processStatusText').textContent = `Refining anchor positions... pass ${pass}/${maxPasses}`;
-                const resp = await fetch('api.php?action=refine', {
+                const _gidR = window.authManager ? authManager.getGuestId() : null;
+                const resp = await fetch('api.php?action=refine' + (_gidR ? '&guest_id=' + _gidR : ''), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ filename: imageFilename, anchors: anchorsPayload, model: this.getSelectedModel() })
@@ -2569,7 +2573,8 @@
                 const anchorsPayload = this.project.anchors.map(a => ({
                     id: a.id, label: a.label, x: a.x, y: a.y, type: a.type
                 }));
-                const resp = await fetch('api.php?action=refine', {
+                const _gidR = window.authManager ? authManager.getGuestId() : null;
+                const resp = await fetch('api.php?action=refine' + (_gidR ? '&guest_id=' + _gidR : ''), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ filename: this.project.imageFilename, anchors: anchorsPayload, model: this.getSelectedModel() })
@@ -2759,7 +2764,9 @@
                 const result = await resp.json();
                 if (result.status !== 'success') throw new Error(result.message);
                 if (!result.projects.length) {
-                    list.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-secondary);">No saved projects</div>';
+                    list.innerHTML = result.guest
+                        ? '<div style="text-align: center; padding: 1.5rem; color: var(--text-secondary);"><div style="margin-bottom: 0.5rem;">Create a free account to save your projects</div><a href="/saas/auth/#signup" style="color: var(--accent); text-decoration: underline;">Sign up</a></div>'
+                        : '<div style="text-align: center; padding: 1rem; color: var(--text-secondary);">No saved projects</div>';
                     return;
                 }
                 list.innerHTML = result.projects.map(p => `
@@ -2863,6 +2870,12 @@
 
         async _tryRestoreAutosave() {
             await this._waitForAuth();
+
+            // Show load-project button only for logged-in users
+            if (window.authManager && window.authManager.user) {
+                document.getElementById('loadProjectLink').classList.remove('hidden');
+            }
+
             let serverState = null;
             let localState = null;
 

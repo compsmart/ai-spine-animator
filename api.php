@@ -3,6 +3,8 @@ require_once __DIR__ . '/../../lib/Security.php';
 require_once __DIR__ . '/../../lib/Database.php';
 require_once __DIR__ . '/../../lib/Auth.php';
 require_once __DIR__ . '/../../lib/Credits.php';
+require_once __DIR__ . '/../../lib/GuestTracker.php';
+require_once __DIR__ . '/../lib/Projects.php';
 
 // Start authentication session
 Auth::startSession();
@@ -115,43 +117,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        // AUTH: Check authentication
+        // AUTH: Check authentication or guest allowance
         $userId = Auth::checkAuth();
-        if (!$userId) {
+        $guestId = (int)($_POST['guest_id'] ?? $_GET['guest_id'] ?? 0);
+
+        if ($userId) {
+            // Authenticated: check and deduct credits
+            $requiredCredits = Credits::getCost('spine', 'analyze');
+            if (!Credits::hasEnoughCredits($userId, $requiredCredits)) {
+                http_response_code(402);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Insufficient credits',
+                    'code' => 'INSUFFICIENT_CREDITS',
+                    'required' => $requiredCredits,
+                    'balance' => Credits::getBalance($userId)
+                ]);
+                exit;
+            }
+
+            $deducted = Credits::deductCredits(
+                $userId,
+                $requiredCredits,
+                'spine',
+                'analyze',
+                ['filename' => basename($imagePath)]
+            );
+
+            if (!$deducted) {
+                http_response_code(500);
+                echo json_encode(['status' => 'error', 'message' => 'Failed to process credits']);
+                exit;
+            }
+        } elseif ($guestId && GuestTracker::validateGuest($guestId)) {
+            // Guest: check and track free allowance
+            if (!GuestTracker::hasAllowanceRemaining($guestId, 'spine', 'analyze')) {
+                http_response_code(401);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Free analysis limit reached. Sign up to continue!',
+                    'code' => 'AUTH_REQUIRED'
+                ]);
+                exit;
+            }
+            GuestTracker::trackUsage($guestId, 'spine', 'analyze');
+        } else {
             http_response_code(401);
             echo json_encode([
                 'status' => 'error',
                 'message' => 'Authentication required',
                 'code' => 'AUTH_REQUIRED'
             ]);
-            exit;
-        }
-
-        // AUTH: Check and deduct credits (2 credits for analyze)
-        $requiredCredits = Credits::getCost('spine', 'analyze');
-        if (!Credits::hasEnoughCredits($userId, $requiredCredits)) {
-            http_response_code(402);
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Insufficient credits',
-                'code' => 'INSUFFICIENT_CREDITS',
-                'required' => $requiredCredits,
-                'balance' => Credits::getBalance($userId)
-            ]);
-            exit;
-        }
-
-        $deducted = Credits::deductCredits(
-            $userId,
-            $requiredCredits,
-            'spine',
-            'analyze',
-            ['filename' => basename($imagePath)]
-        );
-
-        if (!$deducted) {
-            http_response_code(500);
-            echo json_encode(['status' => 'error', 'message' => 'Failed to process credits']);
             exit;
         }
 
@@ -245,43 +261,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        // AUTH: Check authentication
+        // AUTH: Check authentication or guest allowance
         $userId = Auth::checkAuth();
-        if (!$userId) {
+        $guestId = (int)($_POST['guest_id'] ?? $_GET['guest_id'] ?? 0);
+
+        if ($userId) {
+            $requiredCredits = Credits::getCost('spine', 'refine');
+            if (!Credits::hasEnoughCredits($userId, $requiredCredits)) {
+                http_response_code(402);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Insufficient credits',
+                    'code' => 'INSUFFICIENT_CREDITS',
+                    'required' => $requiredCredits,
+                    'balance' => Credits::getBalance($userId)
+                ]);
+                exit;
+            }
+
+            $deducted = Credits::deductCredits(
+                $userId,
+                $requiredCredits,
+                'spine',
+                'refine',
+                ['filename' => basename($imagePath), 'anchor_count' => count($anchors)]
+            );
+
+            if (!$deducted) {
+                http_response_code(500);
+                echo json_encode(['status' => 'error', 'message' => 'Failed to process credits']);
+                exit;
+            }
+        } elseif ($guestId && GuestTracker::validateGuest($guestId)) {
+            if (!GuestTracker::hasAllowanceRemaining($guestId, 'spine', 'refine')) {
+                http_response_code(401);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Free refinement limit reached. Sign up to continue!',
+                    'code' => 'AUTH_REQUIRED'
+                ]);
+                exit;
+            }
+            GuestTracker::trackUsage($guestId, 'spine', 'refine');
+        } else {
             http_response_code(401);
             echo json_encode([
                 'status' => 'error',
                 'message' => 'Authentication required',
                 'code' => 'AUTH_REQUIRED'
             ]);
-            exit;
-        }
-
-        // AUTH: Check and deduct credits (2 credits for refine)
-        $requiredCredits = Credits::getCost('spine', 'refine');
-        if (!Credits::hasEnoughCredits($userId, $requiredCredits)) {
-            http_response_code(402);
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Insufficient credits',
-                'code' => 'INSUFFICIENT_CREDITS',
-                'required' => $requiredCredits,
-                'balance' => Credits::getBalance($userId)
-            ]);
-            exit;
-        }
-
-        $deducted = Credits::deductCredits(
-            $userId,
-            $requiredCredits,
-            'spine',
-            'refine',
-            ['filename' => basename($imagePath), 'anchor_count' => count($anchors)]
-        );
-
-        if (!$deducted) {
-            http_response_code(500);
-            echo json_encode(['status' => 'error', 'message' => 'Failed to process credits']);
             exit;
         }
 
@@ -660,6 +688,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         chmod($filepath, 0644);
 
+        // Register ownership in user_projects for DB-driven filtering
+        Projects::register($userId, 'spine', $filename, $projectName, 'active', null, ['filename' => $filename]);
+
         echo json_encode([
             'status' => 'success',
             'filename' => $filename,
@@ -702,24 +733,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // === LIST PROJECTS ===
+    // === LIST PROJECTS (auth + DB-driven) ===
     if ($action === 'projects') {
-        // NOTE: Should be scoped to authenticated user when auth is implemented
-        $files = glob($projectsDir . '*.json');
-        if ($files === false) {
-            echo json_encode(['status' => 'success', 'projects' => []]);
+        $userId = Auth::checkAuth();
+        if (!$userId) {
+            echo json_encode(['status' => 'success', 'projects' => [], 'guest' => true]);
             exit;
         }
 
-        usort($files, function($a, $b) {
-            return filemtime($b) - filemtime($a);
-        });
+        $userProjects = Projects::listForUser($userId, 'spine');
 
         $projects = [];
-        foreach (array_slice($files, 0, 100) as $file) {
-            // Validate path
-            $safePath = Security::validatePath($projectsDir, basename($file));
-            if ($safePath === false) continue;
+        foreach (array_slice($userProjects, 0, 100) as $proj) {
+            $filename = $proj['app_project_id'];
+            $safePath = Security::validatePath($projectsDir, $filename);
+            if ($safePath === false || !file_exists($safePath)) continue;
 
             $content = file_get_contents($safePath);
             $jsonValidation = Security::validateJson($content);
@@ -727,8 +755,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($jsonValidation['valid']) {
                 $data = $jsonValidation['data'];
                 $projects[] = [
-                    'filename' => basename($file),
-                    'name' => $data['name'] ?? basename($file, '.json'),
+                    'filename' => $filename,
+                    'name' => $data['name'] ?? basename($filename, '.json'),
                     'savedAt' => $data['savedAt'] ?? date('c', filemtime($safePath)),
                     'imageType' => $data['imageType'] ?? 'unknown'
                 ];
@@ -739,8 +767,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // === LOAD PROJECT ===
+    // === LOAD PROJECT (auth + ownership check) ===
     if ($action === 'load') {
+        $userId = Auth::checkAuth();
+        if (!$userId) {
+            http_response_code(401);
+            echo json_encode(['status' => 'error', 'message' => 'Authentication required', 'code' => 'AUTH_REQUIRED']);
+            exit;
+        }
+
         $filename = $_GET['filename'] ?? '';
 
         if (empty($filename)) {
@@ -754,6 +789,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($filepath === false || !file_exists($filepath)) {
             http_response_code(404);
             echo json_encode(['status' => 'error', 'message' => 'Project not found']);
+            exit;
+        }
+
+        // Verify ownership
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT id FROM user_projects WHERE user_id = ? AND app_name = 'spine' AND app_project_id = ? AND status != 'deleted'");
+        $stmt->execute([$userId, $filename]);
+        if (!$stmt->fetch()) {
+            http_response_code(403);
+            echo json_encode(['status' => 'error', 'message' => 'Project not found or access denied']);
             exit;
         }
 
